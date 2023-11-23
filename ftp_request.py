@@ -43,8 +43,9 @@ class FTPClient:
 
             subdirectories = []
             for path in paths:
-                # if self.ftp.nlst(path) == path:
-                subdirectories.append(path)
+                subdirectories_paths = self.get_directory_paths(path)
+                subdirectories.extend(subdirectories_paths)
+                # subdirectories.append(path)
 
             # self.logger.info('Субдирректории получены успешно!')
             return subdirectories
