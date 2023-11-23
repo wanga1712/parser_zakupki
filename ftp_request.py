@@ -40,6 +40,18 @@ class FTPClient:
     def get_subdirectories(self, remote_path, filter_criteria):
         try:
             # self.logger.info(f'Получение субдирректорий для {remote_path}')
+            subdirectories = []
+
+            subdirectories_paths = self.get_directory_paths(remote_path)
+
+            matching_subbdirectories = [subdir for subdir in subdirectories_paths if
+                                       any(criteria in subdir for criteria in filter_criteria)]
+            subdirectories.extend(matching_subbdirectories)
+
+            for subdir in matching_subbdirectories:
+                subdirectories_paths = f'{remote_path}/{subdir}'
+                subdirectories.extend(self.get_subdirectories(subdirectories_paths, filter_criteria))
+
             paths = self.get_directory_paths(remote_path)
 
             subdirectories = []
@@ -69,7 +81,7 @@ class FTPClient:
 ftp_client = FTPClient('ftp.zakupki.gov.ru', 'free', 'free')
 ftp_client.connect()
 directory_path = ftp_client.get_directory_paths('/fcs_regions')
-filter_criteria = ['acts', 'contracts', 'notifications', 'protocols', 'qualifiedContractors', 'currMonth', 'revMonth']
+filter_criteria = ['acts', 'contracts', 'notifications', 'protocols']
 
 print('Полученные директории с ftp закупки.гов:')
 for dir_path in directory_path:
