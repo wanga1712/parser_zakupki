@@ -24,15 +24,33 @@ class FTPClient:
         except Exception as e:
             self.logger.error(f'Произошла ошибка при подключении к ftp {self.host} в функции def connect')
 
-
     def get_directory_paths(self, remote_path):
         try:
-            self.logger.info(f'Извлечение дирректорий из каталога {remote_path}')
-            path = self.ftp.nlst(remote_path)
-            self.logger.info('Дирректории каталога успешно извлечены')
-            return path
+            # self.logger.info(f'Извлечение дирректорий из каталога {remote_path}')
+            paths = self.ftp.nlst(remote_path)
+
+            # Фльтрация по регионам
+            filtered_paths = [path for path in paths if path.startswith('/fcs_regions/Moskva') or path.startswith('/fcs_regions/Moskovskaja_obl')]
+            # self.logger.info('Дирректории каталога успешно извлечены')
+            return filtered_paths
         except Exception as e:
             self.logger.error(f'Ошибка получения директории {e} в функции def retrieve_directory')
+
+    def get_subdirectories(self, remote_path):
+        try:
+            # self.logger.info(f'Получение субдирректорий для {remote_path}')
+            paths = self.get_directory_paths(remote_path)
+
+            subdirectories = []
+            for path in paths:
+                # if self.ftp.nlst(path) == path:
+                subdirectories.append(path)
+
+            # self.logger.info('Субдирректории получены успешно!')
+            return subdirectories
+        except Exception as e:
+            self.logger.error(f'Ошибка получения субдирректорий для {remote_path} в функции get_subdirectories')
+            return []
 
     def disconnect(self):
         try:
@@ -46,13 +64,13 @@ class FTPClient:
 # Проверка работы функции
 ftp_client = FTPClient('ftp.zakupki.gov.ru', 'free', 'free')
 ftp_client.connect()
-directory_path = ftp_client.get_directory_paths('/fcs_nsi')
+directory_path = ftp_client.get_directory_paths('/fcs_regions')
 
 print('Полученные директории с ftp закупки.гов:')
-for path in directory_path:
-    print(path)
+for dir_path in directory_path:
+    print(dir_path)
+    subdirectories = ftp_client.get_subdirectories(dir_path)
+    for sub_dir_path in subdirectories:
+        print(f'\t{sub_dir_path}')
 
 ftp_client.disconnect()
-
-
-
