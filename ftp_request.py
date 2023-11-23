@@ -30,22 +30,25 @@ class FTPClient:
             paths = self.ftp.nlst(remote_path)
 
             # Фльтрация по регионам
-            filtered_paths = [path for path in paths if path.startswith('/fcs_regions/Moskva') or path.startswith('/fcs_regions/Moskovskaja_obl')]
+            filtered_paths = [path for path in paths if
+                              path.startswith('/fcs_regions/Moskva') or path.startswith('/fcs_regions/Moskovskaja_obl')]
             # self.logger.info('Дирректории каталога успешно извлечены')
             return filtered_paths
         except Exception as e:
             self.logger.error(f'Ошибка получения директории {e} в функции def retrieve_directory')
 
-    def get_subdirectories(self, remote_path):
+    def get_subdirectories(self, remote_path, filter_criteria):
         try:
             # self.logger.info(f'Получение субдирректорий для {remote_path}')
             paths = self.get_directory_paths(remote_path)
 
             subdirectories = []
+
             for path in paths:
                 subdirectories_paths = self.get_directory_paths(path)
-                subdirectories.extend(subdirectories_paths)
-                # subdirectories.append(path)
+                matching_subbdirectories = [subdir for subdir in subdirectories_paths if
+                                            any(criteria in subdir for criteria in filter_criteria)]
+                subdirectories.extend(matching_subbdirectories)
 
             # self.logger.info('Субдирректории получены успешно!')
             return subdirectories
@@ -66,11 +69,12 @@ class FTPClient:
 ftp_client = FTPClient('ftp.zakupki.gov.ru', 'free', 'free')
 ftp_client.connect()
 directory_path = ftp_client.get_directory_paths('/fcs_regions')
+filter_criteria = ['acts', 'contracts', 'notifications', 'protocols', 'qualifiedContractors', 'currMonth', 'revMonth']
 
 print('Полученные директории с ftp закупки.гов:')
 for dir_path in directory_path:
     print(dir_path)
-    subdirectories = ftp_client.get_subdirectories(dir_path)
+    subdirectories = ftp_client.get_subdirectories(dir_path, filter_criteria)
     for sub_dir_path in subdirectories:
         print(f'\t{sub_dir_path}')
 
