@@ -1,7 +1,6 @@
 import logging
 import os.path
 from ftplib import FTP
-import zipfile
 from custom_logger import LoggerConfig
 
 
