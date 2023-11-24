@@ -1,5 +1,7 @@
 import logging
+import os.path
 from ftplib import FTP
+import zipfile
 from custom_logger import LoggerConfig
 
 
@@ -19,6 +21,7 @@ class FTPClient:
         try:
             self.logger.info(f'Соединение с хостингом гос.закупки по ftp {self.host}')
             self.ftp.connect(self.host, self.port)
+            self.ftp.set_pasv(True)
             self.ftp.login(self.username, self.password)
             self.logger.info('Соединение с ftp установлено')
         except Exception as e:
@@ -76,15 +79,20 @@ class FTPClient:
         except Exception as e:
             self.logger.error(f'Ошибка в завершении сеанса связи: {e} в функции def disconnect')
 
-    def download_and_open_file(self, remote_directory, file_name, local_file_path):
+    def download_and_open_file(self, remote_directory, local_directory):
         try:
-            self.logger.info(f'Скачиваем файл {file_name} из дирректории {remote_directory}')
-            with open(local_file_path, 'wb') as local_file:
-                self.ftp.retrbinary(f'RETR {remote_directory}/{file_name}', local_file.write)
-            self.logger.debug(f'Файл {file_name} скачан успешно в директорию {local_file_path}')
+            self.logger.info(f'Скачиваем файлы из дирректории {remote_directory}')
+            self.ftp.cwd(remote_directory)
+            files = self.ftp.nlst()
+            zip_files = [file for file in files]
+            for file in zip_files:
+                with open(os.path.join(local_directory, file), 'wb') as local_file:
+                    self.ftp.retrbinary(f'RETR {file}', local_file.write)
+
+            self.logger.debug(f'Скачивание файлов директорию {local_directory} завершено')
 
         except Exception as e:
-            self.logger.error(f'Произошла ошибка скачивания и чтения файла: {e}')
+            self.logger.error(f'Произошла ошибка скачивания файлов: {e}')
 
 
 
@@ -95,17 +103,16 @@ port = 21
 directory_path = ftp_client.get_directory_paths('/fcs_regions')
 filter_criteria = ['acts', 'contracts', 'notifications', 'protocols', 'currMonth', 'prevMonth']
 # Запуск скачивания файла из директории
-remote_directory = '/fcs_regions/Moskva/contracts/'
-file_name = 'contract_Moskva_2023020100_2023030100_20230825122010_122.xml.zip'
-local_file_path = r'C:\Users\ofman9\Documents\test'
-ftp_client.download_and_open_file(remote_directory, file_name, local_file_path)
+remote_directory = '/fcs_regions/Moskva/contracts/currMonth'
+local_directory = r'C:\Users\ofman9\Documents\test'
+ftp_client.download_and_open_file(remote_directory, local_directory)
 
-
-print('Полученные директории с ftp закупки.гов:')
-for dir_path in directory_path:
-    print(dir_path)
-    subdirectories = ftp_client.get_subdirectories(dir_path, filter_criteria)
-    for sub_dir_path in subdirectories:
-        print(f'\t{sub_dir_path}')
+#
+# print('Полученные директории с ftp закупки.гов:')
+# for dir_path in directory_path:
+#     print(dir_path)
+#     subdirectories = ftp_client.get_subdirectories(dir_path, filter_criteria)
+#     for sub_dir_path in subdirectories:
+#         print(f'\t{sub_dir_path}')
 
 ftp_client.disconnect()
