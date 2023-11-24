@@ -76,12 +76,30 @@ class FTPClient:
         except Exception as e:
             self.logger.error(f'Ошибка в завершении сеанса связи: {e} в функции def disconnect')
 
+    def download_and_open_file(self, remote_directory, file_name, local_file_path):
+        try:
+            self.logger.info(f'Скачиваем файл {file_name} из дирректории {remote_directory}')
+            with open(local_file_path, 'wb') as local_file:
+                self.ftp.retrbinary(f'RETR {remote_directory}/{file_name}', local_file.write)
+            self.logger.debug(f'Файл {file_name} скачан успешно в директорию {local_file_path}')
+
+        except Exception as e:
+            self.logger.error(f'Произошла ошибка скачивания и чтения файла: {e}')
+
+
 
 # Проверка работы функции
 ftp_client = FTPClient('ftp.zakupki.gov.ru', 'free', 'free')
 ftp_client.connect()
+port = 21
 directory_path = ftp_client.get_directory_paths('/fcs_regions')
-filter_criteria = ['acts', 'contracts', 'notifications', 'protocols']
+filter_criteria = ['acts', 'contracts', 'notifications', 'protocols', 'currMonth', 'prevMonth']
+# Запуск скачивания файла из директории
+remote_directory = '/fcs_regions/Moskva/contracts/'
+file_name = 'contract_Moskva_2023020100_2023030100_20230825122010_122.xml.zip'
+local_file_path = r'C:\Users\ofman9\Documents\test'
+ftp_client.download_and_open_file(remote_directory, file_name, local_file_path)
+
 
 print('Полученные директории с ftp закупки.гов:')
 for dir_path in directory_path:
