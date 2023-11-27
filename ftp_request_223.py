@@ -1,5 +1,6 @@
 import logging
 import os.path
+import re
 from ftplib import FTP
 from custom_logger import LoggerConfig
 
@@ -24,51 +25,51 @@ class FTPClient:
             self.ftp.login(self.username, self.password)
             self.logger.info('Соединение с ftp установлено')
         except Exception as e:
-            self.logger.error(f'Произошла ошибка при подключении к ftp {self.host} в функции def connect')
+            self.logger.error(f'Произошла ошибка при подключении к ftp {self.host} {e} в функции def connect')
+
+    import os
 
     def get_directory_paths(self, remote_path):
+        paths = []
+
         try:
-            # self.logger.info(f'Извлечение дирректорий из каталога {remote_path}')
-            paths = self.ftp.nlst(remote_path)
+            self.ftp.cwd(remote_path)
+            current_directory = self.ftp.pwd()
 
-            # Фльтрация по регионам
-            filtered_paths = [path for path in paths if
-                              path.startswith('/fcs_regions/Moskva') or path.startswith('/fcs_regions/Moskovskaja_obl')]
-            # self.logger.info('Дирректории каталога успешно извлечены')
-            return filtered_paths
+            self.logger.info(f'Current directory: {current_directory}')
+
+            data = []
+
+            def callback(line):
+                line = line.strip()
+                if line:
+                    data.append(line)
+
+            self.ftp.retrlines('LIST', callback)
+
+            self.logger.info(f'Directory listing: {data}')
+
+            for item in data:
+                line_parts = item.split(maxsplit=8)
+                filename = line_parts[-1]
+                path = os.path.join(current_directory, filename).replace('\\', '/')
+
+                if item.startswith('-'):
+                    # File found, add it to the paths
+                    paths.append(path)
+                elif item.startswith('d') and not item.endswith('xml.zip'):
+                    # Directory found, recursively retrieve subdirectories
+                    try:
+                        self.ftp.cwd(path)
+                        subdirectories = self.get_directory_paths(path)
+                        paths.extend(subdirectories)
+                    except Exception as e:
+                        self.logger.error(f'Failed to change directory: {path}. {e}')
+
         except Exception as e:
-            self.logger.error(f'Ошибка получения директории {e} в функции def retrieve_directory')
+            self.logger.error(f'Failed to get directory: {e} in function get_directory_paths')
 
-    def get_subdirectories(self, remote_path, filter_criteria):
-        try:
-            # self.logger.info(f'Получение субдирректорий для {remote_path}')
-            subdirectories = []
-
-            subdirectories_paths = self.get_directory_paths(remote_path)
-
-            matching_subbdirectories = [subdir for subdir in subdirectories_paths if
-                                       any(criteria in subdir for criteria in filter_criteria)]
-            subdirectories.extend(matching_subbdirectories)
-
-            for subdir in matching_subbdirectories:
-                subdirectories_paths = f'{remote_path}/{subdir}'
-                subdirectories.extend(self.get_subdirectories(subdirectories_paths, filter_criteria))
-
-            paths = self.get_directory_paths(remote_path)
-
-            subdirectories = []
-
-            for path in paths:
-                subdirectories_paths = self.get_directory_paths(path)
-                matching_subbdirectories = [subdir for subdir in subdirectories_paths if
-                                            any(criteria in subdir for criteria in filter_criteria)]
-                subdirectories.extend(matching_subbdirectories)
-
-            # self.logger.info('Субдирректории получены успешно!')
-            return subdirectories
-        except Exception as e:
-            self.logger.error(f'Ошибка получения субдирректорий для {remote_path} в функции get_subdirectories')
-            return []
+        return paths
 
     def disconnect(self):
         try:
@@ -78,40 +79,19 @@ class FTPClient:
         except Exception as e:
             self.logger.error(f'Ошибка в завершении сеанса связи: {e} в функции def disconnect')
 
-    def download_and_open_file(self, remote_directory, local_directory):
-        try:
-            self.logger.info(f'Скачиваем файлы из дирректории {remote_directory}')
-            self.ftp.cwd(remote_directory)
-            files = self.ftp.nlst()
-            zip_files = [file for file in files]
-            for file in zip_files:
-                with open(os.path.join(local_directory, file), 'wb') as local_file:
-                    self.ftp.retrbinary(f'RETR {file}', local_file.write)
-
-            self.logger.debug(f'Скачивание файлов директорию {local_directory} завершено')
-
-        except Exception as e:
-            self.logger.error(f'Произошла ошибка скачивания файлов: {e}')
-
-
 
 # Проверка работы функции
 ftp_client = FTPClient('ftp.zakupki.gov.ru', 'fz223free', 'fz223free')
 ftp_client.connect()
 port = 21
-directory_path = ftp_client.get_directory_paths('/out')
-filter_criteria = ['acts', 'contracts', 'notifications', 'protocols', 'currMonth', 'prevMonth']
+remote_path = ftp_client.get_directory_paths('/out')
 # Запуск скачивания файла из директории
-remote_directory = 'out/published/Moskva'
-local_directory = r'C:\Users\ofman9\Documents\test'
-ftp_client.download_and_open_file(remote_directory, local_directory)
+remote_directory = '/out'
+local_directory = r'C:\Users\wangr\OneDrive\Документы\тест'
 
-#
-# print('Полученные директории с ftp закупки.гов:')
-# for dir_path in directory_path:
-#     print(dir_path)
-#     subdirectories = ftp_client.get_subdirectories(dir_path, filter_criteria)
-#     for sub_dir_path in subdirectories:
-#         print(f'\t{sub_dir_path}')
+
+print('Полученные директории с ftp закупки.гов:')
+for dir_path in remote_path:
+    print(dir_path)
 
 ftp_client.disconnect()
