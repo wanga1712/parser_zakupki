@@ -96,13 +96,13 @@ class FTPClient:
 
 
 # Проверка работы функции
-ftp_client = FTPClient('ftp.zakupki.gov.ru', 'free', 'free')
+ftp_client = FTPClient('ftp.zakupki.gov.ru', 'fz223free', 'fz223free')
 ftp_client.connect()
 port = 21
-directory_path = ftp_client.get_directory_paths('/fcs_regions')
+directory_path = ftp_client.get_directory_paths('/out')
 filter_criteria = ['acts', 'contracts', 'notifications', 'protocols', 'currMonth', 'prevMonth']
 # Запуск скачивания файла из директории
-remote_directory = '/fcs_regions/Moskva/contracts/currMonth'
+remote_directory = 'out/published/Moskva'
 local_directory = r'C:\Users\ofman9\Documents\test'
 ftp_client.download_and_open_file(remote_directory, local_directory)
 
