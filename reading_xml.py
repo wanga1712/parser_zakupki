@@ -49,8 +49,8 @@ class XMLZipFileHandler:
 
 
 
-extraction_path = r'C:\Users\ofman9\Documents\test'
-output_directory = r'C:\Users\ofman9\Documents\test_1'
+extraction_path = r'C:\Users\wangr\OneDrive\Документы\тест'
+output_directory = r'C:\Users\wangr\OneDrive\Документы\тест2'
 
 processor = XMLZipFileHandler(extraction_path)
 processor.extract_xml_files(output_directory)

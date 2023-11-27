@@ -1,5 +1,5 @@
 import logging
-import os.path
+import os
 import re
 from ftplib import FTP
 from custom_logger import LoggerConfig
@@ -13,24 +13,22 @@ class FTPClient:
         self.port = port
         self.ftp = FTP()
 
-        # Конфигурация логгера
+        # Configuration of logger
         self.logger = logging.getLogger(__name__)
         LoggerConfig.configure_logger(self.logger)
 
     def connect(self):
         try:
-            self.logger.info(f'Соединение с хостингом гос.закупки по ftp {self.host}')
+            self.logger.info(f'Connecting to FTP host: {self.host}')
             self.ftp.connect(self.host, self.port)
             self.ftp.set_pasv(True)
             self.ftp.login(self.username, self.password)
-            self.logger.info('Соединение с ftp установлено')
+            self.logger.info('Connection to FTP established')
         except Exception as e:
-            self.logger.error(f'Произошла ошибка при подключении к ftp {self.host} {e} в функции def connect')
+            self.logger.error(f'Error connecting to FTP host: {self.host}. {e}')
 
-    import os
-
-    def get_directory_paths(self, remote_path):
-        paths = []
+    def get_files_after_date(self, remote_path, date):
+        file_paths = []
 
         try:
             self.ftp.cwd(remote_path)
@@ -52,46 +50,61 @@ class FTPClient:
             for item in data:
                 line_parts = item.split(maxsplit=8)
                 filename = line_parts[-1]
-                path = os.path.join(current_directory, filename).replace('\\', '/')
+                file_path = os.path.join(current_directory, filename).replace('\\', '/')
 
-                if item.startswith('-'):
-                    # File found, add it to the paths
-                    paths.append(path)
+                if item.startswith('-') and self.is_valid_date(filename, date):
+                    # File found and matches the date condition, add it to the file_paths
+                    file_paths.append(file_path)
                 elif item.startswith('d') and not item.endswith('xml.zip'):
                     # Directory found, recursively retrieve subdirectories
                     try:
-                        self.ftp.cwd(path)
-                        subdirectories = self.get_directory_paths(path)
-                        paths.extend(subdirectories)
+                        self.ftp.cwd(file_path)
+                        subdirectories = self.get_files_after_date(file_path, date)
+                        file_paths.extend(subdirectories)
                     except Exception as e:
-                        self.logger.error(f'Failed to change directory: {path}. {e}')
+                        self.logger.error(f'Failed to change directory: {file_path}. {e}')
 
         except Exception as e:
-            self.logger.error(f'Failed to get directory: {e} in function get_directory_paths')
+            self.logger.error(f'Failed to get directory: {e}')
 
-        return paths
+        return file_paths
+
+    def is_valid_date(self, filename, date):
+        # Extract the date from the filename
+        match = re.search(r'\d{8}', filename)
+        if match:
+            file_date = match.group()
+            return file_date > date
+        else:
+            return False
+
+    def download_files(self, file_paths, local_directory):
+        try:
+            os.makedirs(local_directory, exist_ok=True)
+            for file_path in file_paths:
+                local_file = os.path.join(local_directory, os.path.basename(file_path))
+                self.logger.info(f'Downloading file: {file_path}')
+                self.ftp.retrbinary(f'RETR {file_path}', open(local_file, 'wb').write)
+                self.logger.info(f'Downloaded file: {file_path}')
+        except Exception as e:
+            self.logger.error(f'Failed to download files: {e}')
 
     def disconnect(self):
         try:
-            self.logger.info('Disconnect')
+            self.logger.info('Disconnecting')
             self.ftp.quit()
-            self.logger.info('Disconnected completed')
+            self.logger.info('Disconnected')
         except Exception as e:
-            self.logger.error(f'Ошибка в завершении сеанса связи: {e} в функции def disconnect')
+            self.logger.error(f'Error disconnecting: {e}')
 
 
-# Проверка работы функции
+# Testing the function
 ftp_client = FTPClient('ftp.zakupki.gov.ru', 'fz223free', 'fz223free')
 ftp_client.connect()
-port = 21
-remote_path = ftp_client.get_directory_paths('/out')
-# Запуск скачивания файла из директории
-remote_directory = '/out'
+remote_path = '/out/published/Moskva'
+date = '20230101'
+file_paths = ftp_client.get_files_after_date(remote_path, date)
 local_directory = r'C:\Users\wangr\OneDrive\Документы\тест'
 
-
-print('Полученные директории с ftp закупки.гов:')
-for dir_path in remote_path:
-    print(dir_path)
-
+ftp_client.download_files(file_paths, local_directory)
 ftp_client.disconnect()
