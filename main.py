@@ -1,7 +1,4 @@
-from ftplib import FTP
+from open_file.extract_files import extract
 
-ftp = FTP('ftp://zakupki.gov.ru')
-ftp.login('free')
-data = ftp.retrlines('LIST')
-
-print(data)
+#Запускаем модуль распаковки файла XML из ZIP архива
+extract()
