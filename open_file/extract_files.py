@@ -1,6 +1,9 @@
 import logging  # импортируем модуль logging
 import os
 import zipfile
+import shutil  # Импорт модуля shutil
+import py7zr  # модуль для определения кодировки для распаковки файлов в 7z
+
 from custom_logger import LoggerConfig
 from config import ConfigSettings
 
@@ -25,10 +28,11 @@ class Extract():
                 о успешной распаковки файлов в директорию, иначе выдает ошибку через логгер.
     '''
 
-    def __init__(self, xml_zip_dr: (str), extract_dir_xml: (str),
-                 pdf_zip_dir: (str), extract_dir_pdf: (str)) -> None:
+    def __init__(self, xml_zip_dr: (str) = None, extract_dir_xml: (str) = None,
+                 pdf_zip_dir: (str) = None, extract_dir_pdf: (str) = None) -> None:
         '''
-        Конструктор класса Extract.
+        Конструктор класса Extract. Значения для аргументов заданы как необязательные,
+        для применения аргументов в дочерних классах по одному
             Аргументы
                 :param xml_zip_dr (str): путь к папке с архивами zip, содержащими xml-документы
                 :param extract_dir_xml (str): путь к папке, куда извлекать xml-документы
@@ -53,6 +57,7 @@ class Extract():
             Также выводит на экран значение атрибута xml_zip_dr.
         :return:
         '''
+        print('функция запущена')
         try:
             for filename in os.listdir(self.xml_zip_dr):
                 if filename.endswith('.zip'):
@@ -64,11 +69,83 @@ class Extract():
         except Exception as e:
             self.logger.error(f"Ошибка распаковки ZIP файлов: {e}")
 
+    def extract_documents(self):
+        '''
+        Функция распаковывает находящиеся в локальной папке pdf_zip_dir
+        файлы из архивов .ZIP и 7Z.
+        Распакованные файлы пеермещает в папку extract_dir_pdf
+         в эту же папку переносит документы находящиеся вне архива, в форматах
+         '.pdf', '.docx', '.xlsx', '.doc'
+        :return: None
+        '''
+        try:
+            # Создаем список возможных расширений документов
+            extensions = ['.pdf', '.docx', '.xlsx', '.doc']
+            # Перебираем все файлы в исходной папке
+            for filename in os.listdir(self.pdf_zip_dir):
+                # Получаем полный путь к файлу
+                file_path = os.path.join(self.pdf_zip_dir, filename)
+                # Проверяем, является ли файл архивом
+                try:
+                    if filename.endswith('.zip'):
+                        # Открываем архив на чтение
+                        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                            # Извлекаем все файлы из архива в целевую папку
+                            zip_ref.extractall(self.extract_dir_pdf)
+                        self.logger.info(
+                            f"Документы формата zip найдены и перемещены в директорию: {self.extract_dir_pdf}")
+                    else:
+                        # Добавляем сообщение self.debug, если не было исключений
+                        self.logger.debug(f'Документы формата .zip не найдены в директории: {self.pdf_zip_dir}')
 
-extractor = Extract(ConfigSettings.get_config_value('xml_zip_local_directory'),
-                    ConfigSettings.get_config_value('xml_output_local_directory'),
-                    ConfigSettings.get_config_value('pdf_zip_archive_local_directory'),
-                    ConfigSettings.get_config_value(
-                        'pdf_output_local_directory'))  # создаем экземпляр класса Extract с аргументами из класса ConfigSettings
+                except Exception as e:
+                    self.logger.error(f"Произошла ошибка при распаковке файлов .zip: {e}")
+                try:
+                    if filename.endswith(".7z"):
+                        with py7zr.SevenZipFile(file_path, mode='r') as z:
+                            # Извлекаем только файлы, которые заканчиваются на .pdf
+                            z.extract(path=self.extract_dir_pdf)
+                        self.logger.info(
+                            f"Документы формата 7z найдены и перемещены в директорию: {self.extract_dir_pdf}")
+                    else:
+                        # Добавляем сообщение self.debug, если не было исключений
+                        self.logger.debug(f'Документы формата .7z не найдены в директории: {self.pdf_zip_dir}')
 
-extractor.extract_xml()  # вызываем функцию extract_xml у экземпляра
+                except Exception as e:
+                    self.logger.error(f"документы не найдены или произошла ошибка: {e}")
+                try:
+                    # Проверяем, является ли файл документом
+                    if any(filename.endswith(ext) for ext in extensions):
+                        # Перемещаем файл в целевую папку
+                        shutil.move(file_path, self.extract_dir_pdf)
+                        self.logger.info(
+                            f"Документы не архивного формата найдены и перемещены в директорию: {self.extract_dir_pdf}")
+                    else:
+                        # Добавляем сообщение self.debug, если не было исключений
+                        self.logger.debug(f'Не архивные документы не найдены в директории: {self.pdf_zip_dir}')
+
+                except Exception as e:
+                    self.logger.debug(f"документы не найдены или произошла ошибка: {e}")
+
+        except Exception as e:
+            # Выводим сообщение об ошибке
+            self.logger.error(f"Ошибка при работе с документами: {e}")
+
+
+# Функция запуска методов класса из модуля
+def extract():
+    extractor = Extract(ConfigSettings.get_config_value('xml_zip_local_directory'),
+                        ConfigSettings.get_config_value('xml_output_local_directory'),
+                        ConfigSettings.get_config_value('pdf_zip_archive_local_directory'),
+                        ConfigSettings.get_config_value(
+                            'pdf_output_local_directory'))
+    extractor.extract_xml()
+    extractor.extract_documents()
+
+# extractor = Extract(ConfigSettings.get_config_value('xml_zip_local_directory'),
+#                     ConfigSettings.get_config_value('xml_output_local_directory'),
+#                     ConfigSettings.get_config_value('pdf_zip_archive_local_directory'),
+#                     ConfigSettings.get_config_value(
+#                         'pdf_output_local_directory'))  # создаем экземпляр класса Extract с аргументами из класса ConfigSettings
+#
+# extractor.extract_xml()  # вызываем функцию extract_xml у экземпляра
