@@ -16,12 +16,12 @@ class ConfigSettings:
         get_config_value(key): Возвращает значение конфигурационной переменной по ключу.
     '''
 
-    page_address = r'https://zakupki.gov.ru/'
-    zip_archive_directory = r'C:\Users\wangr\OneDrive\Документы\тест'
-    pdf_output_directory = r'C:\Users\wangr\OneDrive\Документы\тест2'
-    xml_zip_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест'
-    xml_extracted_path = r'C:\Users\wangr\OneDrive\Документы\тест2'
-    tag_set = []
+    page_address = r'https://zakupki.gov.ru/epz/order/notice/ok504/view/documents.html?regNumber=0364100001819000010'
+    pdf_zip_archive_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\архив_проектов'
+    pdf_output_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\разархивированные_документы_торги'
+    xml_zip_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\архив_xml_тест'
+    xml_output_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\разархивированные_xml'
+    tag_set = ['a href']
     set_inn = []
     date = '20240101'  # Дата в формате 'YYYYMMDD'
 

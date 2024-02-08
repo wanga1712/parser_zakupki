@@ -3,6 +3,7 @@ import os
 import zipfile
 import shutil  # Импорт модуля shutil
 import py7zr  # модуль для определения кодировки для распаковки файлов в 7z
+import rarfile
 
 from custom_logger import LoggerConfig
 from config import ConfigSettings
@@ -10,7 +11,7 @@ from config import ConfigSettings
 
 class Extract():
     '''
-    Класс Extract предназначен для распаковки zip-файлов, содержащих xml-и
+    Класс Extract предназначен для распаковки zip, rar - файлов, содержащих xml-и
     pdf - документов, из одной папки в другую, класс получает значения для атрибутов из модуля
     config.
         Параметры:
@@ -85,7 +86,8 @@ class Extract():
             for filename in os.listdir(self.pdf_zip_dir):
                 # Получаем полный путь к файлу
                 file_path = os.path.join(self.pdf_zip_dir, filename)
-                # Проверяем, является ли файл архивом
+
+                # Проверяем, является ли файл архивом zip
                 try:
                     if filename.endswith('.zip'):
                         # Открываем архив на чтение
@@ -97,9 +99,26 @@ class Extract():
                     else:
                         # Добавляем сообщение self.debug, если не было исключений
                         self.logger.debug(f'Документы формата .zip не найдены в директории: {self.pdf_zip_dir}')
+                except Exception as e:
+                    self.logger.error(f"Произошла ошибка при распаковке файлов .zip: {e}")
+
+                # Проверяем, является ли файл архивом rar
+                try:
+                    if filename.endswith('.rar'):
+                        # Открываем архив на чтение
+                        with rarfile.RarFile(file_path, 'r') as rar_ref:
+                            # Извлекаем все файлы из архива в целевую папку
+                            rar_ref.extractall(self.extract_dir_pdf)
+                        self.logger.info(
+                            f"Документы формата rar найдены и перемещены в директорию: {self.extract_dir_pdf}")
+                    else:
+                        # Добавляем сообщение self.debug, если не было исключений
+                        self.logger.debug(f'Документы формата .zip не найдены в директории: {self.pdf_zip_dir}')
 
                 except Exception as e:
                     self.logger.error(f"Произошла ошибка при распаковке файлов .zip: {e}")
+
+                # Проверяем, является ли файл архивом 7z
                 try:
                     if filename.endswith(".7z"):
                         with py7zr.SevenZipFile(file_path, mode='r') as z:
@@ -113,8 +132,9 @@ class Extract():
 
                 except Exception as e:
                     self.logger.error(f"документы не найдены или произошла ошибка: {e}")
+
+                # Проверяем, является ли файл документом
                 try:
-                    # Проверяем, является ли файл документом
                     if any(filename.endswith(ext) for ext in extensions):
                         # Перемещаем файл в целевую папку
                         shutil.move(file_path, self.extract_dir_pdf)
