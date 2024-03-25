@@ -75,35 +75,49 @@ class FileChecker:
     def extract_search_phrase_word(self, file_path, search_terms):
         """
         Метод для парсинга и извлечения данных из файла Word, сверяет на словосочетание в тексте
-        документа и возвращает строку с найденным текстом и название документа.
+        документа и возвращает строку с найденным текстом и название документа, а также данные слева и справа от найденной фразы в той же строке таблицы.
 
         :param file_path: принимает путь до файла Word
+        :param search_terms: принимает список словосочетаний для поиска
         :return: возвращает найденную строку в документе целиком, если она содержит в себе указанное слово,
-         и наименование файла в котором найдено слово.
+         и наименование файла в котором найдено слово, а также данные слева и справа от найденной фразы.
         """
         try:
             doc = Document(file_path)
-            found_terms = {}
+            file_name = os.path.basename(file_path)
+            found_terms = {term.lower(): [] for term in search_terms}
+
+            # Поиск в параграфах
             for paragraph in doc.paragraphs:
-                for term in paragraph.text:
-                    if term in paragraph.text:
-                        if term not in found_terms:
-                            found_terms[term].append(paragraph.text)
+                for term in found_terms:
+                    if term in paragraph.text.lower():
+                        found_terms[term].append(paragraph.text)
 
-            for term, sentences in found_terms.items():
-                for sentence in sentences:
-                    logger.info(f'Найдено "{term}" в файле {file_path}: {sentence}')
-
-            if not found_terms:
-                logger.info(f'Слова или словосочетания из списка не найдены в файле {file_path}')
+            # Поиск в таблицах
+            for table in doc.tables:
+                for row in table.rows:
+                    cells_text = [cell.text for cell in row.cells]
+                    for cell_index, cell_text in enumerate(cells_text):
+                        for term in found_terms:
+                            if term in cell_text.lower():
+                                left_data = ' '.join(cells_text[:cell_index])  # Данные слева от фразы
+                                right_data = ' '.join(cells_text[cell_index + 1:])  # Данные справа от фразы
+                                found_terms[term].append(f'{left_data} {cell_text} {right_data}')
+                                logger.info(f'Найдено в файле {file_name}: {left_data} "{cell_text}" {right_data}')
 
         except Exception as e:
-            logger.error(f'Ошибка при поиске в файле {file_path}: {e}')
+            logger.error(f'Ошибка при поиске в файле {file_name}: {e}')
+
+# TODO--> Нужно доделать передачу названия файла полученного файла для того, чтобы взять в отработку, сейчас функция работает,
+# TODO--> но для открытия файла нужен и путь и само название файла
+# TODO--> необходимо изменить название модуля так как будут файлы не только PDF
+# TODO--> необходимо изменить get_config_value диреткория будет содеражть все файлы
 
 
 
 
-search_terms ={'свето', 'светильник', 'светодиод', 'композит', 'периль', 'лоток', 'подвесной', 'стеклопластик'}
+# Пример использования функции
+search_terms = {term.lower() for term in {'Протяженность оси трассы', 'СНиП 3.06.04-91', 'ТР ТС 014/2011'}}
 
 def FileChecker():
     extractor = FileChecker(ConfigSettings.get_config_value('xml_zip_local_directory'),
