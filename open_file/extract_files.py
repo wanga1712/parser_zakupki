@@ -1,10 +1,11 @@
-import logging  # импортируем модуль logging
+  # импортируем модуль logging
 import os
 import zipfile
 import shutil  # Импорт модуля shutil
 import py7zr  # модуль для определения кодировки для распаковки файлов в 7z
 import rarfile
 
+from loguru import logger
 from custom_logger import LoggerConfig
 from config import ConfigSettings
 
@@ -19,11 +20,9 @@ class Extract():
             :param extract_dir_xml: путь к папке, куда извлекаются xml - документы
             :param pdf_zip_dir: путь к папке с архивами zip, содкржащими pdf - докумменты
             :param extract_dir_pdf: путь к папке, куда распаковываются pdf - документы
-            :param logger (logging.Logger): объект логгера для ведения журнала событий
         Методы:
             init((self, xml_zip_dr, extract_dir_xml, pdf_zip_dir, extract_dir_pdf): конструктор
-                класса, принимает четыре аргумента и присваивает их атрибутам класса, а также настривает
-                логгер.
+                класса, принимает четыре аргумента и присваивает их атрибутам класса.
             extract_xml(self): метод для распаковки zip-файлов с xml-документами из папки xml_zip_dr
                 в папку extract_dir_xml испольузя модуль zipfile. В случае успеха выдает сообщение
                 о успешной распаковки файлов в директорию, иначе выдает ошибку через логгер.
@@ -65,10 +64,10 @@ class Extract():
                     zip_path = os.path.join(self.xml_zip_dr, filename)
                     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                         zip_ref.extractall(self.extract_dir_xml)
-            self.logger.info(f"Файлы успешно распакованы в директорию: {self.extract_dir_xml}")
+            logger.info(f"Файлы успешно распакованы в директорию: {self.extract_dir_xml}")
 
         except Exception as e:
-            self.logger.error(f"Ошибка распаковки ZIP файлов: {e}")
+            logger.error(f"Ошибка распаковки ZIP файлов: {e}")
 
     def extract_documents(self):
         '''
@@ -94,13 +93,13 @@ class Extract():
                         with zipfile.ZipFile(file_path, 'r') as zip_ref:
                             # Извлекаем все файлы из архива в целевую папку
                             zip_ref.extractall(self.extract_dir_pdf)
-                        self.logger.info(
+                        logger.info(
                             f"Документы формата zip найдены и перемещены в директорию: {self.extract_dir_pdf}")
                     else:
                         # Добавляем сообщение self.debug, если не было исключений
                         self.logger.debug(f'Документы формата .zip не найдены в директории: {self.pdf_zip_dir}')
                 except Exception as e:
-                    self.logger.error(f"Произошла ошибка при распаковке файлов .zip: {e}")
+                    logger.error(f"Произошла ошибка при распаковке файлов .zip: {e}")
 
                 # Проверяем, является ли файл архивом rar
                 try:
@@ -109,14 +108,14 @@ class Extract():
                         with rarfile.RarFile(file_path, 'r') as rar_ref:
                             # Извлекаем все файлы из архива в целевую папку
                             rar_ref.extractall(self.extract_dir_pdf)
-                        self.logger.info(
+                        logger.info(
                             f"Документы формата rar найдены и перемещены в директорию: {self.extract_dir_pdf}")
                     else:
                         # Добавляем сообщение self.debug, если не было исключений
-                        self.logger.debug(f'Документы формата .zip не найдены в директории: {self.pdf_zip_dir}')
+                        logger.debug(f'Документы формата .zip не найдены в директории: {self.pdf_zip_dir}')
 
                 except Exception as e:
-                    self.logger.error(f"Произошла ошибка при распаковке файлов .zip: {e}")
+                    logger.error(f"Произошла ошибка при распаковке файлов .zip: {e}")
 
                 # Проверяем, является ли файл архивом 7z
                 try:
@@ -124,32 +123,32 @@ class Extract():
                         with py7zr.SevenZipFile(file_path, mode='r') as z:
                             # Извлекаем только файлы, которые заканчиваются на .pdf
                             z.extract(path=self.extract_dir_pdf)
-                        self.logger.info(
+                        logger.info(
                             f"Документы формата 7z найдены и перемещены в директорию: {self.extract_dir_pdf}")
                     else:
                         # Добавляем сообщение self.debug, если не было исключений
-                        self.logger.debug(f'Документы формата .7z не найдены в директории: {self.pdf_zip_dir}')
+                        logger.debug(f'Документы формата .7z не найдены в директории: {self.pdf_zip_dir}')
 
                 except Exception as e:
-                    self.logger.error(f"документы не найдены или произошла ошибка: {e}")
+                    logger.error(f"документы не найдены или произошла ошибка: {e}")
 
                 # Проверяем, является ли файл документом
                 try:
                     if any(filename.endswith(ext) for ext in extensions):
                         # Перемещаем файл в целевую папку
                         shutil.move(file_path, self.extract_dir_pdf)
-                        self.logger.info(
+                        logger.info(
                             f"Документы не архивного формата найдены и перемещены в директорию: {self.extract_dir_pdf}")
                     else:
                         # Добавляем сообщение self.debug, если не было исключений
-                        self.logger.debug(f'Не архивные документы не найдены в директории: {self.pdf_zip_dir}')
+                        logger.debug(f'Не архивные документы не найдены в директории: {self.pdf_zip_dir}')
 
                 except Exception as e:
-                    self.logger.debug(f"документы не найдены или произошла ошибка: {e}")
+                    logger.debug(f"документы не найдены или произошла ошибка: {e}")
 
         except Exception as e:
             # Выводим сообщение об ошибке
-            self.logger.error(f"Ошибка при работе с документами: {e}")
+            logger.error(f"Ошибка при работе с документами: {e}")
 
 
 # Функция запуска методов класса из модуля
