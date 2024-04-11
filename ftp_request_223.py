@@ -38,7 +38,7 @@ class FTPClient:
             self.logger.info('Соединение с ftp установлено')
         except Exception as e:
             # Запись информации об ошибке при соединении с FTP сервером в журнал
-            self.logger.error(f'Произошла ошибка при подключении к ftp {self.host} в функции def connect')
+            self.logger.error(f'Произошла ошибка при подключении к ftp {self.host} {e} в функции def connect')
 
     def get_files_after_date(self, remote_path, date):
         file_paths = []  # Список для хранения путей к файлам, соответствующим условиям

@@ -55,6 +55,7 @@ class Extract():
 
         except Exception as e:
             logger.error(f"Ошибка распаковки ZIP файлов: {e}")
+            #TODO--> этот метод должен будет запускаться первым, для извлечения данных из файла XML
 
     def extract_documents(self):
         '''

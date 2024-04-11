@@ -4,10 +4,10 @@ class ConfigSettings:
 
     Atributes:
         :atr page_address (str): путь до веб-страницы откуда нужно спарсить данные
-        :atr zip_archive_directory (str): путь до папки содержащей ZIP архивы документов PDF
-        :atr pdf_output_directory (str): путь до папки для распаковванных ZIP архивов документов PDF
+        :atr zip_archive_local_directory (str): путь до папки содержащей ZIP архивы документов скачанные с ЕИС
+        :atr unpacked_output_local_directory (str): путь до папки для распаковванных ZIP архивов документов PDF
         :atr xml_zip_local_directory (str): путь до папки содержащей ZIP архивы документов XML
-        :atr xml_extracted_path (str): путь до папки для распакованных документов XML
+        :atr xml_unpacked_local_directory (str): путь до папки для распакованных документов XML
         :atr tag_set (list): набор тегов для парсинга данных с сайта гос. закупки
         :atr inn_set (list): набор ИНН для первичного условия парсинга файлов XML
         :atr date (DATA): дата начиная с которой скачиваем архивы с FTP ЕИС
@@ -17,10 +17,10 @@ class ConfigSettings:
     '''
 
     page_address = r'https://zakupki.gov.ru/epz/order/notice/ok504/view/documents.html?regNumber=0364100001819000010'
-    pdf_zip_archive_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\архив_проектов'
-    pdf_output_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\разархивированные_документы_торги'
+    zip_archive_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\архив_проектов'
+    unpacked_output_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\разархивированные_документы_торги'
     xml_zip_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\архив_xml_тест'
-    xml_output_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\разархивированные_xml'
+    xml_unpacked_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\разархивированные_xml'
     tag_set = ['a href']
     set_inn = []
     date = '20240101'  # Дата в формате 'YYYYMMDD'
