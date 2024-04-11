@@ -1,11 +1,10 @@
-import logging
+import loguru
 import os
 import re
 from ftplib import FTP
 
 from config import local_directory
 from checking_markup_conditions import FileProcessor
-from custom_logger import LoggerConfig
 
 
 class FTPClient:

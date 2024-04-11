@@ -16,7 +16,8 @@ class ConfigSettings:
         get_config_value(key): Возвращает значение конфигурационной переменной по ключу.
     '''
 
-    page_address = r'https://zakupki.gov.ru/epz/order/notice/ok504/view/documents.html?regNumber=0364100001819000010'
+    # Определение удаленного пути и даты для фильтрации файлов
+    remote_path_44_fz = '/fcs_regions/Moskva/contracts/currMonth'
     zip_archive_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\архив_проектов'
     unpacked_output_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\разархивированные_документы_торги'
     xml_zip_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\архив_xml_тест'
