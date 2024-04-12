@@ -1,3 +1,6 @@
+import os
+
+
 class FTPClientSettings:
     """
         Класс для хранения настроек подключения к FTP серверу.
@@ -14,12 +17,11 @@ class FTPClientSettings:
             port (int): Порт сервера FTP, по умолчанию 21.
         """
 
-    ftp_remote_path_44_fz = '/fcs_regions/Moskva/contracts/currMonth'
+    # ftp_remote_path_44_fz = '/fcs_regions/Moskva/contracts/currMonth'
     host = 'ftp.zakupki.gov.ru'  # Адрес сервера FTP
     username = 'free'  # Имя пользователя для аутентификации
     password = 'free'  # Пароль пользователя для аутентификации
     port = 21  # Порт сервера FTP, по умолчанию 21
-
 
     @staticmethod
     def get_config_value_ftp_settings(key):
@@ -32,3 +34,16 @@ class FTPClientSettings:
             Значение переменной, если она существует, иначе None.
         '''
         return getattr(FTPClientSettings, key, None)
+
+    @staticmethod
+    def get_json_file_path():
+        """
+            Получает путь к JSON-файлу.
+
+            Returns:
+                str: Путь к JSON-файлу.
+            """
+        # Получение пути к JSON-файлу
+        current_directory = os.path.dirname(__file__)  # Получение текущей директории модуля
+        json_file_name = 'directories.json'  # Имя вашего JSON-файла
+        return os.path.join(current_directory, json_file_name)

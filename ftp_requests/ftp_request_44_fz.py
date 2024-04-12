@@ -1,40 +1,43 @@
 from loguru import logger
-from ftplib import FTP
 import os
 import re
+from ftplib import FTP
 from tqdm import tqdm
+import json
 
 from config_requests_ftp_44_fz import FTPClientSettings
 from config import ConfigSettings
 
 
 class FTPDownloader:
+    """
+        Класс для скачивания файлов с FTP сервера.
+
+        Attributes:
+            host (str): Адрес FTP сервера.
+            port (int): Порт FTP сервера.
+            username (str): Имя пользователя для аутентификации.
+            password (str): Пароль пользователя для аутентификации.
+            ftp: Объект FTP соединения.
+            json_file_path (str): Путь к JSON-файлу с директориями для скачивания файлов.
+            local_directory (str): Локальная директория, куда будут сохраняться скачанные файлы.
+            date (str): Начальная дата для фильтрации файлов по дате.
+        """
+
     def __init__(self):
+        """
+            Инициализирует объект класса FTPDownloader.
+        """
         self.host = FTPClientSettings.get_config_value_ftp_settings('host')
         self.port = FTPClientSettings.get_config_value_ftp_settings('port')
         self.username = FTPClientSettings.get_config_value_ftp_settings('username')
         self.password = FTPClientSettings.get_config_value_ftp_settings('password')
         self.ftp = None
-        self.directory_ftp_44_fz = FTPClientSettings.get_config_value_ftp_settings('ftp_remote_path_44_fz')
+        self.json_file_path = FTPClientSettings.get_json_file_path()
         self.local_directory = ConfigSettings.get_config_value('xml_zip_local_directory')
         self.date = ConfigSettings.get_config_value('start_date')
 
     def connect(self):
-
-        """
-        Устанавливает соединение с FTP сервером, используя настройки из класса FTPClientSettings.
-
-        Пытается установить соединение с FTP сервером, используя предоставленные настройки (адрес сервера,
-        порт, имя пользователя и пароль). В случае успешного соединения возвращает экземпляр соединения.
-        В случае неудачи логирует ошибку и возвращает None.
-
-        Returns:
-            ftp: Возвращает экземпляр соединения с FTP сервером в случае успеха. В противном случае возвращает None.
-
-        Raises:
-            Exception: В случае неудачи логирует возникшее исключение.
-        """
-
         try:
             logger.debug(f'Пытаюсь подключиться к хостингу гос.закупок по ftp {self.host}')
 
@@ -55,13 +58,20 @@ class FTPDownloader:
         else:
             logger.warning('Нет активного соединения для закрытия')
 
-    def download_files(self):
+    def download_files_from_directory(self, directory):
+        """
+            Скачивает файлы из указанной директории на FTP сервере.
+                Args:
+                    directory (str): Путь к директории на FTP сервере.
+                Returns:
+                    List[str]: Список путей к скачанным файлам.
+                Raises:
+                Exception: В случае возникновения ошибки при загрузке файлов.
+                    """
         file_paths = []
 
         try:
-            self.connect()  # Подключение к FTP серверу
-
-            self.ftp.cwd(self.directory_ftp_44_fz)  # Переход в указанную директорию
+            self.ftp.cwd(directory)  # Переход в указанную директорию
 
             current_directory = self.ftp.pwd()  # Получение текущего рабочего каталога
             logger.info(f'Начинаю работу с директорией: {current_directory}')  # Логирование текущего каталога
@@ -75,7 +85,7 @@ class FTPDownloader:
 
             self.ftp.retrlines('LIST', callback)  # Получение списка файлов с сервера
 
-            logger.info(f'Создаю список файлов: {data}')  # Логирование списка файлов
+            logger.info(f'Создаю список файлов')  # Логирование списка файлов
 
             # Получаем общее количество файлов для tqdm
             total_files = len(data)
@@ -87,7 +97,8 @@ class FTPDownloader:
                     file_path = os.path.join(current_directory, filename).replace('\\',
                                                                                   '/')  # Формирование полного пути к файлу
 
-                    if item.startswith('-') and self.is_valid_date(filename, self.date) and filename.endswith('xml.zip'):
+                    if item.startswith('-') and self.is_valid_date(filename, self.date) and filename.endswith(
+                            'xml.zip'):
                         # Если элемент является файлом, соответствует условию даты и имеет нужное расширение, скачиваем его
                         file_paths.append(file_path)
                         self.download_single_file(filename, file_path)  # Скачиваем файл
@@ -97,17 +108,30 @@ class FTPDownloader:
                         # Если элемент является директорией, рекурсивно скачиваем файлы из этой директории
                         subdirectory = os.path.join(current_directory, filename)
                         subdirectory = subdirectory.replace('\\', '/')
-                        subdirectories = self.download_files(subdirectory)
+                        subdirectories = self.download_files_from_directory(subdirectory)
                         file_paths.extend(subdirectories)  # Добавление путей субдиректорий в список
-                        pbar.update(len(subdirectories))  # Увеличиваем значение progress bar на количество субдиректорий
+                        pbar.update(
+                            len(subdirectories))  # Увеличиваем значение progress bar на количество субдиректорий
 
         except Exception as e:
             logger.error(f'Ошибка во время загрузки файлов: {e}')  # Логирование ошибки при загрузке файлов
 
+        return file_paths  # Возврат списка путей к файлам
+
+    def download_files(self):
+        try:
+            self.connect()  # Подключение к FTP серверу
+            directory_list = self.load_paths_from_json()  # Получение списка директорий из JSON файла
+
+            all_file_paths = []
+            for directory in directory_list:
+                file_paths = self.download_files_from_directory(directory)  # Скачивание файлов из каждой директории
+                all_file_paths.extend(file_paths)
+
+            return all_file_paths  # Возврат списка всех скачанных файлов
+
         finally:
             self.close_connection()  # Закрываем соединение с FTP сервером
-
-        return file_paths  # Возврат списка путей к файлам
 
     @staticmethod
     def is_valid_date(filename, date):
@@ -123,6 +147,16 @@ class FTPDownloader:
         local_file_path = os.path.join(self.local_directory, filename)
         with open(local_file_path, 'wb') as local_file:
             self.ftp.retrbinary(f'RETR {file_path}', local_file.write)
+
+    def load_paths_from_json(self):
+        try:
+            logger.info('Открываю файл Json')
+            with open(self.json_file_path, 'r') as json_file:
+                paths_data = json.load(json_file)
+            return list(paths_data.values())
+        except Exception as e:
+            logger.error(f'Ошибка открытия файла: {e}')
+
 
 ftp_downloader = FTPDownloader()
 ftp_downloader.download_files()
