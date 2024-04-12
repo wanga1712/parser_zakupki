@@ -1,151 +1,128 @@
 from loguru import logger
 from ftplib import FTP
-
+import os
+import re
+from tqdm import tqdm
 
 from config_requests_ftp_44_fz import FTPClientSettings
+from config import ConfigSettings
 
 
-def connect():
-    """
-    Устанавливает соединение с FTP сервером, используя настройки из класса FTPClientSettings.
+class FTPDownloader:
+    def __init__(self):
+        self.host = FTPClientSettings.get_config_value_ftp_settings('host')
+        self.port = FTPClientSettings.get_config_value_ftp_settings('port')
+        self.username = FTPClientSettings.get_config_value_ftp_settings('username')
+        self.password = FTPClientSettings.get_config_value_ftp_settings('password')
+        self.ftp = None
+        self.directory_ftp_44_fz = FTPClientSettings.get_config_value_ftp_settings('ftp_remote_path_44_fz')
+        self.local_directory = ConfigSettings.get_config_value('xml_zip_local_directory')
+        self.date = ConfigSettings.get_config_value('start_date')
 
-    Пытается установить соединение с FTP сервером, используя предоставленные настройки (адрес сервера,
-    порт, имя пользователя и пароль). В случае успешного соединения возвращает экземпляр соединения.
-    В случае неудачи логирует ошибку и возвращает None.
+    def connect(self):
 
-    Returns:
-        ftp: Возвращает экземпляр соединения с FTP сервером в случае успеха. В противном случае возвращает None.
+        """
+        Устанавливает соединение с FTP сервером, используя настройки из класса FTPClientSettings.
 
-    Raises:
-        Exception: В случае неудачи логирует возникшее исключение.
-    """
-    ftp = FTP()
-    try:
-        host = FTPClientSettings.get_config_value_ftp_settings('host')
-        port = FTPClientSettings.get_config_value_ftp_settings('port')
-        username = FTPClientSettings.get_config_value_ftp_settings('username')
-        password = FTPClientSettings.get_config_value_ftp_settings('password')
+        Пытается установить соединение с FTP сервером, используя предоставленные настройки (адрес сервера,
+        порт, имя пользователя и пароль). В случае успешного соединения возвращает экземпляр соединения.
+        В случае неудачи логирует ошибку и возвращает None.
 
-        logger.debug(f'Попытка соединения с хостингом гос.закупки по ftp {host}')
+        Returns:
+            ftp: Возвращает экземпляр соединения с FTP сервером в случае успеха. В противном случае возвращает None.
 
-        ftp.connect(host, port)
-        ftp.set_pasv(True)
-        ftp.login(username, password)
+        Raises:
+            Exception: В случае неудачи логирует возникшее исключение.
+        """
 
-        logger.info('Соединение с ftp установлено успешно')
-        return ftp
-    except Exception as e:
-        logger.error(f'Произошла ошибка при подключении к ftp {host}: {e}')
-        return None
+        try:
+            logger.debug(f'Пытаюсь подключиться к хостингу гос.закупок по ftp {self.host}')
 
+            self.ftp = FTP()
+            self.ftp.connect(self.host, self.port)
+            self.ftp.set_pasv(True)
+            self.ftp.login(self.username, self.password)
 
-ftp_connection = connect()
+            logger.info('Установил соединение с ftp')
+        except Exception as e:
+            logger.error(f'Произошла ошибка при подключении к ftp {self.host}: {e}')
+            self.ftp = None
 
-#     def get_directory_paths(self, remote_path):
-#         try:
-#             # Получение списка путей в удаленном каталоге
-#             paths = self.ftp.nlst(remote_path)
-#
-#             # Фильтрация путей по определенным регионам (Москва и Московская область)
-#             filtered_paths = [path for path in paths if
-#                               path.startswith('/fcs_regions/Moskva') or path.startswith('/fcs_regions/Moskovskaja_obl')]
-#             # Возврат отфильтрованных путей
-#             return filtered_paths
-#         except Exception as e:
-#             # Запись информации об ошибке при получении директорий в журнал
-#             self.logger.error(f'Ошибка получения директории {e} в функции def retrieve_directory')
-#
-#     def get_subdirectories(self, remote_path, filter_criteria):
-#         try:
-#             # Получение субдиректорий для заданного удаленного пути с учетом критериев фильтрации
-#             subdirectories = []
-#
-#             # Получение путей директорий в удаленном каталоге
-#             subdirectories_paths = self.get_directory_paths(remote_path)
-#
-#             # Фильтрация субдиректорий, соответствующих критериям фильтрации
-#             matching_subbdirectories = [subdir for subdir in subdirectories_paths if
-#                                         any(criteria in subdir for criteria in filter_criteria)]
-#             # Добавление отфильтрованных субдиректорий в список
-#             subdirectories.extend(matching_subbdirectories)
-#
-#             # Рекурсивный обход субдиректорий для поиска дополнительных субдиректорий
-#             for subdir in matching_subbdirectories:
-#                 subdirectories_paths = f'{remote_path}/{subdir}'
-#                 subdirectories.extend(self.get_subdirectories(subdirectories_paths, filter_criteria))
-#
-#             # Возврат списка всех найденных субдиректорий
-#             return subdirectories
-#         except Exception as e:
-#             # Запись информации об ошибке при получении субдиректорий в журнал
-#             self.logger.error(f'Ошибка получения субдирректорий для {remote_path} в функции get_subdirectories')
-#             # Возврат пустого списка в случае ошибки
-#             return []
-#
-#     def disconnect(self):
-#         try:
-#             # Запись информации о начале процесса отключения от FTP сервера в журнал
-#             self.logger.info('Disconnect')
-#             # Завершение сеанса связи с FTP сервером
-#             self.ftp.quit()
-#             # Запись информации об успешном завершении сеанса связи в журнал
-#             self.logger.info('Disconnected completed')
-#         except Exception as e:
-#             # Запись информации об ошибке при завершении сеанса связи в журнал
-#             self.logger.error(f'Ошибка в завершении сеанса связи: {e} в функции def disconnect')
-#
-#     def download_and_open_file(self, remote_directory, local_directory):
-#         try:
-#             # Запись информации о начале скачивания файлов из удаленной директории в журнал
-#             self.logger.info(f'Скачиваем файлы из дирректории {remote_directory}')
-#             # Переход в удаленную директорию на FTP сервере
-#             self.ftp.cwd(remote_directory)
-#             # Получение списка файлов в удаленной директории
-#             files = self.ftp.nlst()
-#             # Фильтрация и выбор файлов для скачивания
-#             zip_files = [file for file in files]
-#             # Перебор файлов и их скачивание в локальную директорию
-#             for file in zip_files:
-#                 # Открытие файла для записи в бинарном режиме
-#                 with open(os.path.join(local_directory, file), 'wb') as local_file:
-#                     # Скачивание файла с FTP сервера и запись его в локальный файл
-#                     self.ftp.retrbinary(f'RETR {file}', local_file.write)
-#
-#             # Запись информации о завершении скачивания файлов в журнал
-#             self.logger.debug(f'Скачивание файлов директорию {local_directory} завершено')
-#
-#         except Exception as e:
-#             # Запись информации об ошибке при скачивании файлов в журнал
-#             self.logger.error(f'Произошла ошибка скачивания файлов: {e}')
-#
-#
-# # Создание экземпляра клиента FTP с указанными учетными данными
-# ftp_client = FTPClient('ftp.zakupki.gov.ru', 'free', 'free')
-# # Установка соединения с FTP сервером
-# ftp_client.connect()
-#
-# # Определение порта для соединения (не используется в данном контексте)
-# port = 21
-#
-# # Получение путей директорий в корневом каталоге '/fcs_regions'
-# directory_path = ftp_client.get_directory_paths('/fcs_regions')
-#
-# # Определение критериев фильтрации для поиска субдиректорий
-# filter_criteria = ['acts', 'contracts', 'notifications', 'protocols', 'currMonth', 'prevMonth']
-#
-# # Запуск процесса скачивания файлов из указанной удаленной директории в локальную директорию
-# remote_directory = '/fcs_regions/Moskva/contracts/currMonth'
-# local_directory = r'C:\Users\ofman9\Documents\test'
-# ftp_client.download_and_open_file(remote_directory, local_directory)
-#
-# # Раскомментирование следующего блока кода позволит вывести в консоль полученные директории
-# # и субдиректории, соответствующие критериям фильтрации
-# # print('Полученные директории с ftp закупки.гов:')
-# # for dir_path in directory_path:
-# #     print(dir_path)
-# #     subdirectories = ftp_client.get_subdirectories(dir_path, filter_criteria)
-# #     for sub_dir_path in subdirectories:
-# #         print(f'\t{sub_dir_path}')
-#
-# # Отключение от FTP сервера и завершение сеанса связи
-# ftp_client.disconnect()
+    def close_connection(self):
+        if self.ftp:
+            self.ftp.quit()
+            logger.info('Закрыл соединение с ftp')
+        else:
+            logger.warning('Нет активного соединения для закрытия')
+
+    def download_files(self):
+        file_paths = []
+
+        try:
+            self.connect()  # Подключение к FTP серверу
+
+            self.ftp.cwd(self.directory_ftp_44_fz)  # Переход в указанную директорию
+
+            current_directory = self.ftp.pwd()  # Получение текущего рабочего каталога
+            logger.info(f'Начинаю работу с директорией: {current_directory}')  # Логирование текущего каталога
+
+            data = []  # Список для хранения данных о файлах
+
+            def callback(line):
+                line = line.strip()
+                if line:
+                    data.append(line)  # Добавление информации о файле в список
+
+            self.ftp.retrlines('LIST', callback)  # Получение списка файлов с сервера
+
+            logger.info(f'Создаю список файлов: {data}')  # Логирование списка файлов
+
+            # Получаем общее количество файлов для tqdm
+            total_files = len(data)
+
+            with tqdm(total=total_files, desc='Downloading files') as pbar:
+                for item in data:
+                    line_parts = item.split(maxsplit=8)  # Разделение строки на части
+                    filename = line_parts[-1]  # Получение имени файла
+                    file_path = os.path.join(current_directory, filename).replace('\\',
+                                                                                  '/')  # Формирование полного пути к файлу
+
+                    if item.startswith('-') and self.is_valid_date(filename, self.date) and filename.endswith('xml.zip'):
+                        # Если элемент является файлом, соответствует условию даты и имеет нужное расширение, скачиваем его
+                        file_paths.append(file_path)
+                        self.download_single_file(filename, file_path)  # Скачиваем файл
+                        pbar.update(1)  # Увеличиваем значение progress bar
+
+                    elif item.startswith('d'):
+                        # Если элемент является директорией, рекурсивно скачиваем файлы из этой директории
+                        subdirectory = os.path.join(current_directory, filename)
+                        subdirectory = subdirectory.replace('\\', '/')
+                        subdirectories = self.download_files(subdirectory)
+                        file_paths.extend(subdirectories)  # Добавление путей субдиректорий в список
+                        pbar.update(len(subdirectories))  # Увеличиваем значение progress bar на количество субдиректорий
+
+        except Exception as e:
+            logger.error(f'Ошибка во время загрузки файлов: {e}')  # Логирование ошибки при загрузке файлов
+
+        finally:
+            self.close_connection()  # Закрываем соединение с FTP сервером
+
+        return file_paths  # Возврат списка путей к файлам
+
+    @staticmethod
+    def is_valid_date(filename, date):
+        # Извлечение даты из имени файла
+        match = re.search(r'\d{8}', filename)  # Поиск последовательности из 8 цифр в имени файла
+        if match:
+            file_date = match.group()  # Получение найденной даты
+            return file_date > date  # Сравнение даты файла с заданной датой
+        else:
+            return False  # Возврат False, если дата в имени файла не найдена
+
+    def download_single_file(self, filename, file_path):
+        local_file_path = os.path.join(self.local_directory, filename)
+        with open(local_file_path, 'wb') as local_file:
+            self.ftp.retrbinary(f'RETR {file_path}', local_file.write)
+
+ftp_downloader = FTPDownloader()
+ftp_downloader.download_files()

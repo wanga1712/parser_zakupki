@@ -7,21 +7,41 @@ from config import local_directory
 from checking_markup_conditions import FileProcessor
 
 
-class FTPClient:
-    def __init__(self, host, username, password, port=21):
-        # Инициализация клиента FTP с заданными параметрами подключения.
-        self.host = host  # Адрес сервера FTP
-        self.username = username  # Имя пользователя для аутентификации
-        self.password = password  # Пароль пользователя для аутентификации
-        self.port = port  # Порт сервера FTP, по умолчанию 21
-        self.ftp = FTP()  # Создание экземпляра клиента FTP
-        FileProcessor.process_file()
-        self.local_directory = local_directory
+def connect(self):
+    try:
+        # Запись информации о попытке соединения с FTP сервером в журнал
+        self.logger.info(f'Соединение с хостингом гос.закупки по ftp {self.host}')
+        # Установка соединения с FTP сервером с использованием указанного хоста и порта
+        self.ftp.connect(self.host, self.port)
+        # Включение пассивного режима передачи данных
+        self.ftp.set_pasv(True)
+        # Аутентификация на FTP сервере с использованием имени пользователя и пароля
+        self.ftp.login(self.username, self.password)
+        # Запись информации об успешном соединении с FTP сервером в журнал
+        self.logger.info('Соединение с ftp установлено')
+    except Exception as e:
+        # Запись информации об ошибке при соединении с FTP сервером в журнал
+        self.logger.error(f'Произошла ошибка при подключении к ftp {self.host} {e} в функции def connect')
 
 
-        # Конфигурация логгера для ведения журнала событий
-        self.logger = logging.getLogger(__name__)  # Получение логгера для текущего модуля
-        LoggerConfig.configure_logger(self.logger)  # Настройка логгера согласно конфигурации
+
+
+
+
+
+
+
+
+# class FTPClient:
+#     def __init__(self, host, username, password, port=21):
+#         # Инициализация клиента FTP с заданными параметрами подключения.
+#         self.host = host  # Адрес сервера FTP
+#         self.username = username  # Имя пользователя для аутентификации
+#         self.password = password  # Пароль пользователя для аутентификации
+#         self.port = port  # Порт сервера FTP, по умолчанию 21
+#         self.ftp = FTP()  # Создание экземпляра клиента FTP
+#         FileProcessor.process_file()
+#         self.local_directory = local_directory
 
     def connect(self):
         try:

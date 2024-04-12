@@ -24,7 +24,7 @@ class ConfigSettings:
     xml_zip_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\архив_xml_тест'
     xml_unpacked_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\разархивированные_xml'
     set_inn = []
-    start_date = '20240101'  # Дата в формате 'YYYYMMDD'
+    start_date = '20240401'  # Дата в формате 'YYYYMMDD'
 
     @staticmethod
     def get_config_value(key):
@@ -36,3 +36,4 @@ class ConfigSettings:
             Значение переменной, если она существует, иначе None.
         '''
         return getattr(ConfigSettings, key, None)
+
