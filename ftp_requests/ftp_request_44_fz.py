@@ -7,6 +7,7 @@ import json
 
 from config_requests_ftp_44_fz import FTPClientSettings
 from config import ConfigSettings
+from database.database_connection import DatabaseManager
 
 
 class FTPDownloader:
@@ -36,6 +37,7 @@ class FTPDownloader:
         self.json_file_path = FTPClientSettings.get_json_file_path()
         self.local_directory = ConfigSettings.get_config_value('xml_zip_local_directory')
         self.date = ConfigSettings.get_config_value('start_date')
+        self.db_manager = DatabaseManager()
 
     def connect(self):
         try:
@@ -144,9 +146,16 @@ class FTPDownloader:
             return False  # Возврат False, если дата в имени файла не найдена
 
     def download_single_file(self, filename, file_path):
-        local_file_path = os.path.join(self.local_directory, filename)
-        with open(local_file_path, 'wb') as local_file:
-            self.ftp.retrbinary(f'RETR {file_path}', local_file.write)
+        if not self.db_manager.check_file_exists(filename):
+            # Скачивание файла
+            local_file_path = os.path.join(self.local_directory, filename)
+            with open(local_file_path, 'wb') as local_file:
+                self.ftp.retrbinary(f'RETR {file_path}', local_file.write)
+
+            # Вставка записи о файле в базу данных
+            self.db_manager.insert_file(filename)
+        else:
+            logger.info(f"Файл {filename} уже скачан ранее. Пропускаем скачивание.")
 
     def load_paths_from_json(self):
         try:
