@@ -1,4 +1,4 @@
-  # импортируем модуль logging
+from loguru import logger
 import os
 import shutil  # предоставляет ряд высокоуровневых операций с файлами
 # и коллекциями файлов. Он используется для копирования, перемещения и удаления файлов, а также для работы с директориями
@@ -6,7 +6,6 @@ import zipfile
 import py7zr  # модуль для определения кодировки для распаковки файлов в 7z
 import rarfile
 
-from loguru import logger
 from config import ConfigSettings
 
 
@@ -25,12 +24,12 @@ class Extract():
     '''
 
     def __init__(self):
-        '''
-        Конструктор класса Extract. Получает из модуля config, класса ConfigSettings локальный путь
-        до папок с архивными и распакованными документами XML, Word, PDF, Excel.
-        '''
-        # присваиваем аргументы конструктора атрибутам класса
-        self.settings = ConfigSettings()
+        """
+        Инициализирует объект класса .
+        """
+        self.unpacked_directory = ConfigSettings.get_config_value('unpacked_output_local_directory')
+        self.zip_directory = ConfigSettings.get_config_value('zip_archive_local_directory')
+        self.extensions = ['.pdf', '.docx', '.xlsx', '.doc']
 
 
     def extract_xml(self):
@@ -67,86 +66,43 @@ class Extract():
         :return: None
         '''
         logger.debug('Функция запущена')
-        zip_archive_local_dir = self.settings.zip_archive_local_directory
-        unpack_output_local_dir = self.settings.unpacked_output_local_directory
-        try:
-            # Создаем список возможных расширений документов
-            extensions = ['.pdf', '.docx', '.xlsx', '.doc']
-            # Перебираем все файлы в исходной папке
-            for filename in os.listdir(zip_archive_local_dir):
-                # Получаем полный путь к файлу
-                file_path = os.path.join(zip_archive_local_dir, filename)
+        for root, dirs, files in os.walk(self.zip_directory):
+            for filename in files:
+                file_path = os.path.join(root, filename)
+                target_path = os.path.join(self.unpacked_directory, os.path.relpath(root, self.zip_directory))
 
-                # Проверяем, является ли файл архивом zip
+                # Убедимся, что целевая директория существует
+                os.makedirs(target_path, exist_ok=True)
+
                 try:
                     if filename.endswith('.zip'):
-                        # Открываем архив на чтение
                         with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                            # Извлекаем все файлы из архива в целевую папку
-                            zip_ref.extractall(unpack_output_local_dir)
-                        logger.info(
-                            f"Документы формата zip найдены и перемещены в директорию: {unpack_output_local_dir}")
+                            for zip_info in zip_ref.infolist():
+                                # Попытка декодировать имена файлов с использованием cp866
+                                zip_info.filename = zip_info.filename.encode('cp437').decode('cp866')
+                                zip_ref.extract(zip_info, target_path)
+                        logger.info(f"Zip-файл {filename} извлечен в {target_path}")
+                    elif filename.endswith('.rar'):
+                        with rarfile.RarFile(file_path, 'r', encoding='cp866') as rar_ref:
+                            rar_ref.extractall(target_path)
+                        logger.info(f"Rar-файл {filename} извлечен в {target_path}")
+                    elif filename.endswith('.7z'):
+                        with py7zr.SevenZipFile(file_path, mode='r', encoding='cp866') as z:
+                            z.extract(path=target_path)
+                        logger.info(f"7z-файл {filename} извлечен в {target_path}")
+                    elif any(filename.endswith(ext) for ext in self.extensions):
+                        shutil.move(file_path, os.path.join(target_path, filename))
+                        logger.info(f"Документ {filename} перемещен в {target_path}")
                     else:
-                        # Добавляем сообщение self.debug, если не было исключений
-                        self.logger.debug(f'Документы формата .zip не найдены в директории: {zip_archive_local_dir}')
+                        logger.debug(f"Файл {filename} не соответствует известным форматам и был проигнорирован.")
                 except Exception as e:
-                    logger.error(f"Произошла ошибка при распаковке файлов .zip: {e}")
-
-                # Проверяем, является ли файл архивом rar
-                try:
-                    if filename.endswith('.rar'):
-                        # Открываем архив на чтение
-                        with rarfile.RarFile(file_path, 'r') as rar_ref:
-                            # Извлекаем все файлы из архива в целевую папку
-                            rar_ref.extractall(unpack_output_local_dir)
-                        logger.info(
-                            f"Документы формата rar найдены и перемещены в директорию: {unpack_output_local_dir}")
-                    else:
-                        # Добавляем сообщение self.debug, если не было исключений
-                        logger.debug(f'Документы формата .zip не найдены в директории: {zip_archive_local_dir}')
-
-                except Exception as e:
-                    logger.error(f"Произошла ошибка при распаковке файлов .zip: {e}")
-
-                # Проверяем, является ли файл архивом 7z
-                try:
-                    if filename.endswith(".7z"):
-                        with py7zr.SevenZipFile(file_path, mode='r') as z:
-                            # Извлекаем только файлы, которые заканчиваются на .pdf
-                            z.extract(path=unpack_output_local_dir)
-                        logger.info(
-                            f"Документы формата 7z найдены и перемещены в директорию: {unpack_output_local_dir}")
-                    else:
-                        # Добавляем сообщение self.debug, если не было исключений
-                        logger.debug(f'Документы формата .7z не найдены в директории: {zip_archive_local_dir}')
-
-                except Exception as e:
-                    logger.error(f"документы не найдены или произошла ошибка: {e}")
-
-                # Проверяем, является ли файл документом
-                try:
-                    if any(filename.endswith(ext) for ext in extensions):
-                        # Перемещаем файл в целевую папку
-                        shutil.move(file_path, unpack_output_local_dir)
-                        logger.info(
-                            f"Документы не архивного формата найдены и перемещены в директорию: {unpack_output_local_dir}")
-                    else:
-                        # Добавляем сообщение self.debug, если не было исключений
-                        logger.debug(f'Не архивные документы не найдены в директории: {zip_archive_local_dir}')
-
-                except Exception as e:
-                    logger.debug(f"документы не найдены или произошла ошибка: {e}")
-
-        except Exception as e:
-            # Выводим сообщение об ошибке
-            logger.error(f"Ошибка при работе с документами: {e}")
+                    logger.error(f"Ошибка при обработке файла {filename}: {e}")
 
 
 # Функция запуска методов класса из модуля
-def extract():
-    extractor = Extract()
-    extractor.extract_xml()
-    extractor.extract_documents()
+extractor = Extract()
+# extractor.extract_xml()
+extractor.extract_documents()
 
 # extractor = Extract(ConfigSettings.get_config_value('xml_zip_local_directory'),
 #                     ConfigSettings.get_config_value('xml_output_local_directory'),
