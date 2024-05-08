@@ -1,6 +1,4 @@
-import loguru
-
-from custom_logger import LoggerConfig
+from loguru import logger
 from config import ConfigSettings
 from open_file.extract_files import Extract
 

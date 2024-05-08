@@ -1,4 +1,7 @@
-from open_file.extract_files import extract
+from ftp_requests.ftp_request_44_fz import FTPDownloader
 
-#Запускаем модуль распаковки файла XML из ZIP архива
-extract()
+# Создаем экземпляр класса FTPDownloader
+ftp_downloader = FTPDownloader()
+
+# Вызываем метод скачивания файлов из ЕИС ФТП гос.закупок
+ftp_downloader.download_files()

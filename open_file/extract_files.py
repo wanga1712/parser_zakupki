@@ -8,6 +8,10 @@ import rarfile
 
 from config import ConfigSettings
 
+# Установка пути к WinRAR в переменную среды PATH
+winrar_path = r"C:\Program Files\WinRAR"
+os.environ["PATH"] += os.pathsep + winrar_path
+
 
 class Extract():
     '''
@@ -25,12 +29,14 @@ class Extract():
 
     def __init__(self):
         """
-        Инициализирует объект класса .
+        Инициализирует объект класса.
         """
         self.unpacked_directory = ConfigSettings.get_config_value('unpacked_output_local_directory')
         self.zip_directory = ConfigSettings.get_config_value('zip_archive_local_directory')
         self.extensions = ['.pdf', '.docx', '.xlsx', '.doc']
 
+        self.xml_zip_dir = ConfigSettings.get_config_value('xml_zip_local_directory')
+        self.xml_unpacked_dir = ConfigSettings.get_config_value('xml_unpacked_local_directory')
 
     def extract_xml(self):
         '''
@@ -41,20 +47,18 @@ class Extract():
             Также выводит на экран значение атрибута xml_zip_dr.
         :return:
         '''
-        logger.debug('Функция запущена')
-        xml_zip_dir = self.settings.xml_zip_local_directory
-        xml_unpacked_dir = self.settings.xml_unpacked_directory
+        logger.debug('Функция запущена extract_xml')
         try:
-            for filename in os.listdir(xml_zip_dir):
+            for filename in os.listdir(self.xml_zip_dir):
                 if filename.endswith('.zip'):
-                    zip_path = os.path.join(xml_zip_dir, filename)
+                    zip_path = os.path.join(self.xml_zip_dir, filename)
                     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                        zip_ref.extractall(xml_unpacked_dir)
-            logger.info(f"Файлы успешно распакованы в директорию: {xml_unpacked_dir}")
+                        zip_ref.extractall(self.xml_unpacked_dir)
+            logger.info(f"Файлы успешно распакованы в директорию: {self.xml_unpacked_dir}")
 
         except Exception as e:
             logger.error(f"Ошибка распаковки ZIP файлов: {e}")
-            #TODO--> этот метод должен будет запускаться первым, для извлечения данных из файла XML
+            # TODO--> этот метод должен будет запускаться первым, для извлечения данных из файла XML
 
     def extract_documents(self):
         '''
@@ -83,11 +87,17 @@ class Extract():
                                 zip_ref.extract(zip_info, target_path)
                         logger.info(f"Zip-файл {filename} извлечен в {target_path}")
                     elif filename.endswith('.rar'):
-                        with rarfile.RarFile(file_path, 'r', encoding='cp866') as rar_ref:
-                            rar_ref.extractall(target_path)
-                        logger.info(f"Rar-файл {filename} извлечен в {target_path}")
+                        try:
+                            with rarfile.RarFile(file_path, 'r') as rar_ref:
+                                rar_ref.extractall(target_path)
+                            logger.info(f"Rar-файл {filename} извлечен в {target_path}")
+                        except rarfile.NeedFirstVolume:
+                            logger.error(f"Необходимо начинать извлечение архива из первого тома (текущий: {filename})")
+                            break  # Прекратить выполнение извлечения из текущего архива и продолжить обработку остальных файлов
+                        except Exception as e:
+                            logger.error(f"Ошибка при обработке файла {filename}: {e}")
                     elif filename.endswith('.7z'):
-                        with py7zr.SevenZipFile(file_path, mode='r', encoding='cp866') as z:
+                        with py7zr.SevenZipFile(file_path, mode='r') as z:
                             z.extract(path=target_path)
                         logger.info(f"7z-файл {filename} извлечен в {target_path}")
                     elif any(filename.endswith(ext) for ext in self.extensions):
@@ -100,9 +110,9 @@ class Extract():
 
 
 # Функция запуска методов класса из модуля
-extractor = Extract()
+# extractor = Extract()
 # extractor.extract_xml()
-extractor.extract_documents()
+# extractor.extract_documents()
 
 # extractor = Extract(ConfigSettings.get_config_value('xml_zip_local_directory'),
 #                     ConfigSettings.get_config_value('xml_output_local_directory'),

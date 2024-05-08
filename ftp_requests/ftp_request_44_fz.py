@@ -5,10 +5,12 @@ from ftplib import FTP
 from tqdm import tqdm
 import json
 
-from config_requests_ftp_44_fz import FTPClientSettings
+from ftp_requests.config_requests_ftp_44_fz import FTPClientSettings
 from config import ConfigSettings
 from database.database_connection import DatabaseManager
+from open_file.extract_files import Extract
 
+extreactor = Extract()
 
 class FTPDownloader:
     """
@@ -38,6 +40,8 @@ class FTPDownloader:
         self.local_directory = ConfigSettings.get_config_value('xml_zip_local_directory')
         self.date = ConfigSettings.get_config_value('start_date')
         self.db_manager = DatabaseManager()
+
+        self.extractor = Extract()
 
     def connect(self):
         try:
@@ -154,6 +158,7 @@ class FTPDownloader:
 
             # Вставка записи о файле в базу данных
             self.db_manager.insert_file(filename)
+            self.extractor.extract_xml()
         else:
             logger.info(f"Файл {filename} уже скачан ранее. Пропускаем скачивание.")
 
@@ -167,5 +172,5 @@ class FTPDownloader:
             logger.error(f'Ошибка открытия файла: {e}')
 
 
-ftp_downloader = FTPDownloader()
-ftp_downloader.download_files()
+# ftp_downloader = FTPDownloader()
+# ftp_downloader.download_files()
