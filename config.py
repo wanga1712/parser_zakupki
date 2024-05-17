@@ -23,8 +23,9 @@ class ConfigSettings:
     unpacked_output_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\разархивированные_документы_торги'
     xml_zip_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\архив_xml_тест'
     xml_unpacked_local_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\разархивированные_xml'
-    set_inn = []
-    start_date = '20240507'  # Дата в формате 'YYYYMMDD'
+    xml_positive_file_directory = r'C:\Users\wangr\OneDrive\Документы\тест парсера закупок\позитивный файл xml'
+    set_okpd = ['42.11', '72.11']
+    start_date = '20240510'  # Дата в формате 'YYYYMMDD'
 
     @staticmethod
     def get_config_value(key):

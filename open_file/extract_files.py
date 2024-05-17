@@ -110,9 +110,9 @@ class Extract():
 
 
 # Функция запуска методов класса из модуля
-# extractor = Extract()
+extractor = Extract()
 # extractor.extract_xml()
-# extractor.extract_documents()
+extractor.extract_documents()
 
 # extractor = Extract(ConfigSettings.get_config_value('xml_zip_local_directory'),
 #                     ConfigSettings.get_config_value('xml_output_local_directory'),

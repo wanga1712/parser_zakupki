@@ -9,6 +9,7 @@ from ftp_requests.config_requests_ftp_44_fz import FTPClientSettings
 from config import ConfigSettings
 from database.database_connection import DatabaseManager
 from open_file.extract_files import Extract
+from parsing.parsing_xml import ParsingXml
 
 extreactor = Extract()
 
@@ -42,6 +43,7 @@ class FTPDownloader:
         self.db_manager = DatabaseManager()
 
         self.extractor = Extract()
+        self.parsing_xml = ParsingXml()
 
     def connect(self):
         try:
@@ -159,6 +161,8 @@ class FTPDownloader:
             # Вставка записи о файле в базу данных
             self.db_manager.insert_file(filename)
             self.extractor.extract_xml()
+            self.parsing_xml.parse_and_move_files()
+
         else:
             logger.info(f"Файл {filename} уже скачан ранее. Пропускаем скачивание.")
 
