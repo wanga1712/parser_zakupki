@@ -5,6 +5,7 @@ from ftplib import FTP
 from tqdm import tqdm
 import json
 
+
 from ftp_requests.config_requests_ftp_44_fz import FTPClientSettings
 from config import ConfigSettings
 from database.database_connection import DatabaseManager
@@ -160,11 +161,23 @@ class FTPDownloader:
 
             # Вставка записи о файле в базу данных
             self.db_manager.insert_file(filename)
+            # Запуск функции разархивирования xml
             self.extractor.extract_xml()
+            # Запуск функции парсинга файла xml по заданным условиям
             self.parsing_xml.parse_and_move_files()
+            # Удаление папки после завершения всех операций
+            self.delete_downloaded_file(local_file_path)
 
         else:
             logger.info(f"Файл {filename} уже скачан ранее. Пропускаем скачивание.")
+
+
+    def delete_downloaded_file(self, file_path):
+        try:
+            os.remove(file_path)
+            logger.info(f"Файл {file_path} удален после завершения операций")
+        except Exception as e:
+            logger.error(f"Ошибка при удалении файла {file_path}: {e}")
 
     def load_paths_from_json(self):
         try:
