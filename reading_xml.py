@@ -2,16 +2,13 @@ import logging
 import zipfile
 import os
 import xml.etree.ElementTree as ET
-from custom_logger import LoggerConfig
+from loguru import logger
 
 
 class XMLZipFileHandler:
     def __init__(self, extraction_path):
         self.extraction_path = extraction_path
 
-        # Конфигурация логгера
-        self.logger = logging.getLogger(__name__)
-        LoggerConfig.configure_logger(self.logger)
 
     def extract_xml_files(self, output_directory):
         try:
@@ -19,13 +16,13 @@ class XMLZipFileHandler:
                 for file in files:
                     file_path = os.path.join(root, file)
                     if file_path.endswith('.zip'):
-                        self.logger.debug(f'Извлечение файлов из архива {file_path}')
+                        logger.debug(f'Извлечение файлов из архива {file_path}')
                         with zipfile.ZipFile(file_path, 'r') as zip_ref:
                             zip_ref.extractall(output_directory)
-                        self.logger.debug('Извлечение завершено успешно')
+                        logger.debug('Извлечение завершено успешно')
 
         except Exception as e:
-            self.logger.error(f'Ошибка при извлечении файлов из архива: {e}')
+            logger.error(f'Ошибка при извлечении файлов из архива: {e}')
 
 
     def process_xml_files(self, input_directory):
@@ -34,18 +31,18 @@ class XMLZipFileHandler:
                 for file in files:
                     file_path = os.path.join(root_1, file)
                     if file_path.endswith('.xml'):
-                        self.logger.debug(f'Чтение файла XML: {file_path}')
+                        logger.debug(f'Чтение файла XML: {file_path}')
                         try:
                             tree = ET.parse(file_path)
                             root = tree.getroot()
                             for elem in root.iter():
-                                self.logger.debug(f'Tag: {elem.tag}, Text: {elem.text}')
+                                logger.debug(f'Tag: {elem.tag}, Text: {elem.text}')
 
                         except Exception as e:
-                            self.logger.error(f'Произошла ошибка чтения файла xml: {e}')
+                            logger.error(f'Произошла ошибка чтения файла xml: {e}')
 
         except Exception as e:
-            self.logger.error(f'Ошибка чтения файлов полная {e}')
+            logger.error(f'Ошибка чтения файлов полная {e}')
 
 
 

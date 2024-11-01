@@ -20,7 +20,7 @@ class FTPClientSettings:
     # ftp_remote_path_44_fz = '/fcs_regions/Moskva/contracts/currMonth'
     host = 'ftp.zakupki.gov.ru'  # Адрес сервера FTP
     username = 'free'  # Имя пользователя для аутентификации
-    password = 'free'  # Пароль пользователя для аутентификации
+    password = 'otkluchenie_FTP_s_01_01_2025_podrobnee_v_ATFF'  # Пароль пользователя для аутентификации
     port = 21  # Порт сервера FTP, по умолчанию 21
 
     @staticmethod

@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from config import local_directory
 from config import extracted_path
 from config import expected_inn
-from custom_logger import LoggerConfig
+from loguru import logger
 
 class FileProcessor:
     def __init__(self, zip_path=None):
@@ -18,8 +18,6 @@ class FileProcessor:
         self.expected_inn = expected_inn
         self.expected_inn = expected_inn  # Инициализация expected_inn здесь
         self.extracted_path = extracted_path
-        self.logger = logging.getLogger(__name__)  # Получение логгера для текущего модуля
-        LoggerConfig.configure_logger(self.logger)  # Настройка логгера согласно конфигурации
 
 
     # В вашем методе process_file

@@ -16,7 +16,7 @@ extreactor = Extract()
 
 class FTPDownloader:
     """
-        Класс для скачивания файлов с FTP сервера.
+        Класс для подключения и скачивания файлов с FTP сервера.
 
         Attributes:
             host (str): Адрес FTP сервера.
@@ -160,11 +160,11 @@ class FTPDownloader:
                 self.ftp.retrbinary(f'RETR {file_path}', local_file.write)
 
             # Вставка записи о файле в базу данных
-            self.db_manager.insert_file(filename)
+            self.db_manager.insert_file_downloaded(filename)
             # Запуск функции разархивирования xml
             self.extractor.extract_xml()
             # Запуск функции парсинга файла xml по заданным условиям
-            self.parsing_xml.parse_and_move_files()
+            self.parsing_xml.parse_and_store_data()
             # Удаление папки после завершения всех операций
             self.delete_downloaded_file(local_file_path)
 
