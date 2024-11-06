@@ -178,18 +178,35 @@ class DatabaseManager:
             logger.exception(f'Ошибка при вставке данных в таблицу contract_data: {e}')
 
     def insert_archive_file_xml_name(self, file_id, archive_name):
+        """
+        Вставляет данные о файле в таблицу archives_file_xml_name_eis.
+
+        Аргументы:
+            file_id (int): Идентификатор файла, который будет связан с архивом.
+            archive_name (str): Имя архива, которое будет сохранено в таблице.
+
+        Возвращает:
+            int: Новый идентификатор записи в таблице (возвращаемый после вставки).
+            None: В случае ошибки вставки данных.
+
+        Исключения:
+            Exception: Если произошла ошибка при выполнении запроса или вставке данных.
+        """
         try:
+            # Формируем запрос на вставку данных
             query = """
                 INSERT INTO archives_file_xml_name_eis (file_id, archive_name)
                 VALUES (%s, %s)
                 RETURNING id;
             """
+            # Выполняем запрос и получаем новый id
             self.cursor.execute(query, (file_id, archive_name))
-            self.connection.commit()
-            new_id = self.cursor.fetchone()[0]
+            self.connection.commit()  # Фиксируем изменения в базе данных
+            new_id = self.cursor.fetchone()[0]  # Получаем id вставленной записи
             logger.debug(f'Данные успешно вставлены в таблицу archives_file_xml_name_eis: {archive_name}')
             return new_id
         except Exception as e:
+            # Откатываем транзакцию и логируем ошибку
             self.connection.rollback()
             logger.exception(f'Ошибка при вставке данных в таблицу archives_file_xml_name_eis: {e}')
             return None
