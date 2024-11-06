@@ -8,36 +8,43 @@ from config import ConfigSettings
 
 class DatabaseManager:
     """
-    Класс для управления базой данных.
+    Класс для управления подключением и взаимодействием с базой данных.
 
-    Attributes:
-        connection (psycopg2.extensions.connection): Соединение с базой данных.
-        cursor (psycopg2.extensions.cursor): Курсор для выполнения операций с базой данных.
+    Атрибуты:
+        connection (psycopg2.extensions.connection): Объект соединения с базой данных.
+        cursor (psycopg2.extensions.cursor): Курсор для выполнения SQL-запросов к базе данных.
+        db_host (str): Хост базы данных.
+        db_name (str): Название базы данных.
+        db_user (str): Имя пользователя базы данных.
+        db_password (str): Пароль пользователя базы данных.
+        db_port (str): Порт подключения к базе данных.
+        zip_directory (str): Директория для хранения ZIP-архивов.
     """
 
     def __init__(self):
         """
         Инициализация объекта DatabaseManager.
 
-        Подключается к базе данных и инициализирует курсор.
+        Загружает настройки подключения из файла .env, устанавливает соединение с базой данных и инициализирует курсор.
 
-        Raises:
+        Исключения:
             Exception: В случае ошибки подключения к базе данных.
         """
+        # Загружаем переменные окружения из файла .env
         load_dotenv(dotenv_path=r'C:\Users\wangr\PycharmProjects\pythonProject9\config\db_credintials.env')
 
-        # Use the provided database_name or default from DefaultConfig
+        # Получаем данные для подключения к базе данных
         self.db_host = os.getenv("DB_HOST")
         self.db_name = os.getenv("DB_DATABASE")
         self.db_user = os.getenv("DB_USER")
         self.db_password = os.getenv("DB_PASSWORD")
         self.db_port = os.getenv("DB_PORT")
 
+        # Директория для хранения ZIP-архивов
         self.zip_directory = ConfigSettings.get_config_value('zip_archive_local_directory')
 
-
         try:
-            # Установление соединения
+            # Устанавливаем соединение с базой данных
             self.connection = psycopg2.connect(
                 database=self.db_name,
                 user=self.db_user,
@@ -46,18 +53,19 @@ class DatabaseManager:
                 port=self.db_port
             )
 
+            # Инициализируем курсор для выполнения операций с базой данных
             self.cursor = self.connection.cursor()
             logger.debug('Подключился к базе данных.')
         except Exception as e:
+            # Логируем и выбрасываем исключение в случае ошибки подключения
             logger.exception(f'Ошибка подключения к базе данных: {e}')
+
 
     def check_file_exists(self, filename):
         """
         Проверяет наличие файла в базе данных.
-
         Args:
             filename (str): Имя файла для проверки.
-
         Returns:
             bool: True, если файл найден, False в противном случае.
         """
@@ -166,7 +174,7 @@ class DatabaseManager:
             if result:
                 last_file_id = result[0]
             else:
-                last_file_id =\
+                last_file_id = \
                     None
             return last_file_id
         except Exception as e:
