@@ -104,7 +104,7 @@ class DatabaseManager:
             query = "INSERT INTO downloaded_files_ftp_44_fz (filename) VALUES (%s)"
             self.cursor.execute(query, (filename,))  # Выполняем запрос с параметром filename
             self.connection.commit()  # Фиксируем изменения в базе данных
-            logger.debug("Запись о файле успешно добавлена в базу данных.")
+            logger.debug("Функция: insert_file - Запись о файле успешно добавлена в базу данных.")
         except psycopg2.Error as e:
             # Логируем ошибку и передаем исключение дальше
             logger.error(f"Ошибка при вставке файла в базу данных: {e}")
@@ -114,7 +114,7 @@ class DatabaseManager:
 
     def insert_file_downloaded(self, filename):
         """
-        Вставляет запись о загруженном файле в таблицу архива и возвращает ID вставленной записи.
+        Вставляет запись о загруженном файле в таблицу архива и возвращает ID вставленной записи, если она еще не существует.
 
         Аргументы:
             filename (str): Имя загруженного файла для добавления в таблицу.
@@ -127,20 +127,30 @@ class DatabaseManager:
             Exception: Если произошла ошибка при выполнении запроса или при вставке данных.
         """
         try:
-            # Формируем SQL-запрос для вставки записи с файлом в таблицу
-            query = """
+            # Проверяем, существует ли уже запись с таким filename
+            check_query = "SELECT file_id FROM archives_of_folders_with_eis_44_Federal_Law WHERE filename = %s"
+            self.cursor.execute(check_query, (filename,))
+            existing_file = self.cursor.fetchone()
+
+            if existing_file:
+                # Если файл уже существует, записываем информацию в лог и пропускаем вставку
+                logger.debug(f"Запись с filename '{filename}' уже существует в таблице.")
+                return None  # Можно вернуть ID найденной записи, если нужно
+
+            # Если запись не найдена, выполняем вставку
+            insert_query = """
                 INSERT INTO archives_of_folders_with_eis_44_Federal_Law (filename)
                 VALUES (%s)
                 RETURNING file_id;
             """
-            # Выполняем запрос и возвращаем ID вставленной записи
-            self.cursor.execute(query, (filename,))
-            self.connection.commit()  # Фиксируем изменения в базе данных
-            file_id = self.cursor.fetchone()[0]  # Извлекаем file_id из результата запроса
+            self.cursor.execute(insert_query, (filename,))
+            self.connection.commit()
+            file_id = self.cursor.fetchone()[0]
             logger.debug(f'Данные успешно вставлены в таблицу archives_of_folders_with_eis_44_Federal_Law: {filename}')
             return file_id
+
         except Exception as e:
-            # Откатываем транзакцию в случае ошибки и логируем исключение
+            # Откатываем транзакцию и логируем ошибку
             self.connection.rollback()
             logger.exception(f'Ошибка при вставке данных в таблицу archives_of_folders_with_eis_44_Federal_Law: {e}')
             return None
