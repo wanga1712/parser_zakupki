@@ -212,22 +212,37 @@ class DatabaseManager:
             return None
 
     def get_last_file_id(self):
+        """
+        Получает последний file_id из таблицы archives_of_folders_with_eis_44_Federal_Law.
+
+        Возвращает:
+            int: Последний file_id в таблице, если он существует.
+            None: Если данных нет или произошла ошибка при выполнении запроса.
+
+        Исключения:
+            Exception: В случае ошибки выполнения запроса или обработки данных.
+        """
         try:
+            # Запрос для получения последнего file_id
             query = """
                 SELECT file_id
                 FROM archives_of_folders_with_eis_44_Federal_Law
                 ORDER BY file_id DESC
                 LIMIT 1;
             """
+            # Выполнение запроса
             self.cursor.execute(query)
             result = self.cursor.fetchone()
+
+            # Проверка на наличие данных
             if result:
-                last_file_id = result[0]
+                last_file_id = result[0]  # Получаем последний file_id
             else:
-                last_file_id = \
-                    None
+                last_file_id = None  # Если данных нет, возвращаем None
+
             return last_file_id
         except Exception as e:
+            # Логирование ошибки
             logger.exception(f'Ошибка при получении последнего file_id: {e}')
             return None
 
