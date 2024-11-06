@@ -287,14 +287,32 @@ class FTPDownloader:
             logger.error(f"Ошибка при удалении файла {file_path}: {e}")
 
     def load_paths_from_json(self):
+        """
+        Загружает данные о путях из JSON-файла и возвращает их в виде списка.
+
+        Ожидается, что JSON-файл содержит структуру данных, где пути хранятся в виде значений.
+        В случае ошибки при открытии или чтении файла, функция логирует ошибку.
+
+        Возвращает:
+        list: Список значений путей, загруженных из JSON-файла.
+
+        Исключения:
+        В случае ошибки открытия или чтения файла, функция записывает ошибку в лог.
+        """
         try:
+            # Логируем попытку открытия JSON-файла
             logger.info('Открываю файл Json')
+
+            # Открытие файла и загрузка данных
             with open(self.json_file_path, 'r') as json_file:
                 paths_data = json.load(json_file)
-            return list(paths_data.values())
-        except Exception as e:
-            logger.error(f'Ошибка открытия файла: {e}')
 
+            # Возвращаем список значений (путей) из данных
+            return list(paths_data.values())
+
+        except Exception as e:
+            # Логируем ошибку в случае исключения
+            logger.error(f'Ошибка открытия файла: {e}')
 
 # ftp_downloader = FTPDownloader()
 # ftp_downloader.download_files()
