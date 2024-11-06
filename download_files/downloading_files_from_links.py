@@ -10,23 +10,31 @@ from database.database_connection import DatabaseManager
 
 class DownloadFilesLinks():
     '''
-    Класс DownloadFilesLinks предназначен для скачивания файлов, полученных по ссылкам из базы данных
-        Параметры:
-            :param xml_zip_local_directory (str): путь до папки содержащей ZIP архивы документов XML
-            :param xml_unpacked_local_directory (str): путь до папки для распакованных документов XML
-            :param zip_archive_local_directory (str): путь до папки содержащей ZIP архивы документов скачанные с ЕИС
-            :param unpacked_output_local_directory (str): путь до папки для распаковванных ZIP архивов документов PDF
-        Методы:
-            init((self): конструктор класса, принимает аргументы из модуля config, класса ConfigSettings.
+    Класс DownloadFilesLinks предназначен для скачивания файлов, полученных по ссылкам из базы данных.
+
+    Атрибуты:
+        :param xml_zip_local_directory (str): Путь до папки, содержащей ZIP-архивы документов XML.
+        :param xml_unpacked_local_directory (str): Путь до папки для распакованных документов XML.
+        :param zip_archive_local_directory (str): Путь до папки, содержащей ZIP-архивы документов, скачанные с ЕИС.
+        :param unpacked_output_local_directory (str): Путь до папки для распакованных ZIP-архивов документов PDF.
+
+    Методы:
+        __init__(self): Конструктор класса, инициализирует объект класса, используя значения конфигурации.
     '''
 
     def __init__(self):
         """
-        Инициализирует объект класса.
-        """
-        self.zip_directory = ConfigSettings.get_config_value('zip_archive_local_directory')
-        self.db_manager = DatabaseManager()
+        Инициализирует объект класса DownloadFilesLinks.
 
+        В этом методе происходит:
+        - Чтение настроек из конфигурационного файла для указания путей к папкам.
+        - Инициализация менеджера базы данных для работы с данными.
+        """
+        # Инициализация директории для ZIP-архивов с документами
+        self.zip_directory = ConfigSettings.get_config_value('zip_archive_local_directory')
+
+        # Инициализация менеджера базы данных для взаимодействия с БД
+        self.db_manager = DatabaseManager()
 
     def decode_filename(self, filename):
         """
@@ -109,9 +117,7 @@ class DownloadFilesLinks():
         except Exception as e:
             logger.error(f"Ошибка при обработке документов: {e}")
 
-
 # # Пример использования
 # if __name__ == "__main__":
 #     download_manager = DownloadFilesLinks()
 #     download_links = download_manager.download_and_process_documents()
-
