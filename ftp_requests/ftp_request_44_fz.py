@@ -16,35 +16,40 @@ extreactor = Extract()
 
 class FTPDownloader:
     """
-        Класс для подключения и скачивания файлов с FTP сервера.
+    Класс для подключения и скачивания файлов с FTP сервера.
 
-        Attributes:
-            host (str): Адрес FTP сервера.
-            port (int): Порт FTP сервера.
-            username (str): Имя пользователя для аутентификации.
-            password (str): Пароль пользователя для аутентификации.
-            ftp: Объект FTP соединения.
-            json_file_path (str): Путь к JSON-файлу с директориями для скачивания файлов.
-            local_directory (str): Локальная директория, куда будут сохраняться скачанные файлы.
-            date (str): Начальная дата для фильтрации файлов по дате.
-        """
+    Атрибуты:
+        host (str): Адрес FTP сервера.
+        port (int): Порт FTP сервера.
+        username (str): Имя пользователя для аутентификации на FTP сервере.
+        password (str): Пароль пользователя для аутентификации на FTP сервере.
+        ftp: Объект FTP соединения.
+        json_file_path (str): Путь к JSON-файлу, содержащему информацию о директориях для скачивания файлов.
+        local_directory (str): Локальная директория, куда будут сохраняться скачанные файлы.
+        date (str): Начальная дата для фильтрации файлов по дате.
+    """
 
     def __init__(self):
         """
-            Инициализирует объект класса FTPDownloader.
-        """
-        self.host = FTPClientSettings.get_config_value_ftp_settings('host')
-        self.port = FTPClientSettings.get_config_value_ftp_settings('port')
-        self.username = FTPClientSettings.get_config_value_ftp_settings('username')
-        self.password = FTPClientSettings.get_config_value_ftp_settings('password')
-        self.ftp = None
-        self.json_file_path = FTPClientSettings.get_json_file_path()
-        self.local_directory = ConfigSettings.get_config_value('xml_zip_local_directory')
-        self.date = ConfigSettings.get_config_value('start_date')
-        self.db_manager = DatabaseManager()
+        Инициализирует объект класса FTPDownloader. Получает настройки подключения к FTP серверу и другие конфигурации.
 
-        self.extractor = Extract()
-        self.parsing_xml = ParsingXml()
+        Инициализирует все атрибуты для подключения к FTP серверу, включая хост, порт, имя пользователя и пароль.
+        Также инициализирует пути для сохранения скачанных файлов, путь к JSON файлу с директориями,
+        а также конфигурацию для фильтрации файлов по дате.
+        """
+        self.host = FTPClientSettings.get_config_value_ftp_settings('host')  # Получаем хост FTP сервера из настроек
+        self.port = FTPClientSettings.get_config_value_ftp_settings('port')  # Получаем порт FTP сервера из настроек
+        self.username = FTPClientSettings.get_config_value_ftp_settings('username')  # Получаем имя пользователя для FTP
+        self.password = FTPClientSettings.get_config_value_ftp_settings('password')  # Получаем пароль для FTP
+        self.ftp = None  # Инициализируем объект FTP (пока пустой)
+        self.json_file_path = FTPClientSettings.get_json_file_path()  # Получаем путь к JSON-файлу с директориями
+        self.local_directory = ConfigSettings.get_config_value('xml_zip_local_directory')  # Путь для сохранения локально
+        self.date = ConfigSettings.get_config_value('start_date')  # Получаем начальную дату для фильтрации
+        self.db_manager = DatabaseManager()  # Менеджер базы данных для обработки информации о файлах
+
+        self.extractor = Extract()  # Инициализируем объект для извлечения данных
+        self.parsing_xml = ParsingXml()  # Инициализируем объект для парсинга XML данных
+
 
     def connect(self):
         try:
