@@ -189,7 +189,7 @@ class DatabaseManager:
 
     def insert_archive_file_xml_name(self, file_id, archive_name):
         """
-        Вставляет данные о файле в таблицу archives_file_xml_name_eis.
+        Вставляет данные о файле в таблицу archives_file_xml_name_eis, если они еще не существуют.
 
         Аргументы:
             file_id (int): Идентификатор файла, который будет связан с архивом.
@@ -197,24 +197,34 @@ class DatabaseManager:
 
         Возвращает:
             int: Новый идентификатор записи в таблице (возвращаемый после вставки).
-            None: В случае ошибки вставки данных.
+            None: В случае, если запись уже существует или произошла ошибка вставки данных.
 
         Исключения:
             Exception: Если произошла ошибка при выполнении запроса или вставке данных.
         """
         try:
-            # Формируем запрос на вставку данных
-            query = """
+            # Проверяем, существует ли уже запись с данным file_id и archive_name
+            check_query = "SELECT id FROM archives_file_xml_name_eis WHERE file_id = %s AND archive_name = %s"
+            self.cursor.execute(check_query, (file_id, archive_name))
+            existing_record = self.cursor.fetchone()
+
+            if existing_record:
+                # Если запись уже существует, логируем это и пропускаем вставку
+                logger.debug(f"Запись с file_id '{file_id}' и archive_name '{archive_name}' уже существует.")
+                return None  # Можно вернуть существующий id, если это необходимо
+
+            # Если записи нет, выполняем вставку
+            insert_query = """
                 INSERT INTO archives_file_xml_name_eis (file_id, archive_name)
                 VALUES (%s, %s)
                 RETURNING id;
             """
-            # Выполняем запрос и получаем новый id
-            self.cursor.execute(query, (file_id, archive_name))
+            self.cursor.execute(insert_query, (file_id, archive_name))
             self.connection.commit()  # Фиксируем изменения в базе данных
             new_id = self.cursor.fetchone()[0]  # Получаем id вставленной записи
             logger.debug(f'Данные успешно вставлены в таблицу archives_file_xml_name_eis: {archive_name}')
             return new_id
+
         except Exception as e:
             # Откатываем транзакцию и логируем ошибку
             self.connection.rollback()
