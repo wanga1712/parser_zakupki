@@ -247,21 +247,37 @@ class DatabaseManager:
             return None
 
     def get_last_archive_id(self):
+        """
+        Получает последний archive_id из таблицы archives_file_xml_name_eis.
+
+        Возвращает:
+            int: Последний archive_id в таблице, если он существует.
+            None: Если данных нет или произошла ошибка при выполнении запроса.
+
+        Исключения:
+            Exception: В случае ошибки выполнения запроса или обработки данных.
+        """
         try:
+            # Запрос для получения последнего archive_id
             query = """
                 SELECT archive_id
                 FROM archives_file_xml_name_eis
                 ORDER BY archive_id DESC
                 LIMIT 1;
             """
+            # Выполнение запроса
             self.cursor.execute(query)
             result = self.cursor.fetchone()
+
+            # Проверка на наличие данных
             if result:
-                last_archive_id = result[0]
+                last_archive_id = result[0]  # Получаем последний archive_id
             else:
-                last_archive_id = None
+                last_archive_id = None  # Если данных нет, возвращаем None
+
             return last_archive_id
         except Exception as e:
+            # Логирование ошибки
             logger.exception(f'Ошибка при получении последнего archive_id: {e}')
             return None
 
