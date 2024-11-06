@@ -113,18 +113,34 @@ class DatabaseManager:
     # испытуемые методы ниже, для парсинга файла xml
 
     def insert_file_downloaded(self, filename):
+        """
+        Вставляет запись о загруженном файле в таблицу архива и возвращает ID вставленной записи.
+
+        Аргументы:
+            filename (str): Имя загруженного файла для добавления в таблицу.
+
+        Возвращает:
+            int или None: Возвращает идентификатор вставленного файла (file_id),
+            если операция прошла успешно, или None в случае ошибки.
+
+        Исключения:
+            Exception: Если произошла ошибка при выполнении запроса или при вставке данных.
+        """
         try:
+            # Формируем SQL-запрос для вставки записи с файлом в таблицу
             query = """
                 INSERT INTO archives_of_folders_with_eis_44_Federal_Law (filename)
                 VALUES (%s)
                 RETURNING file_id;
             """
+            # Выполняем запрос и возвращаем ID вставленной записи
             self.cursor.execute(query, (filename,))
-            self.connection.commit()
-            file_id = self.cursor.fetchone()[0]
+            self.connection.commit()  # Фиксируем изменения в базе данных
+            file_id = self.cursor.fetchone()[0]  # Извлекаем file_id из результата запроса
             logger.debug(f'Данные успешно вставлены в таблицу archives_of_folders_with_eis_44_Federal_Law: {filename}')
             return file_id
         except Exception as e:
+            # Откатываем транзакцию в случае ошибки и логируем исключение
             self.connection.rollback()
             logger.exception(f'Ошибка при вставке данных в таблицу archives_of_folders_with_eis_44_Federal_Law: {e}')
             return None
