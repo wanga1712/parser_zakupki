@@ -60,21 +60,29 @@ class DatabaseManager:
             # Логируем и выбрасываем исключение в случае ошибки подключения
             logger.exception(f'Ошибка подключения к базе данных: {e}')
 
-
     def check_file_exists(self, filename):
         """
-        Проверяет наличие файла в базе данных.
-        Args:
-            filename (str): Имя файла для проверки.
-        Returns:
-            bool: True, если файл найден, False в противном случае.
+        Проверяет, существует ли указанный файл в базе данных.
+
+        Аргументы:
+            filename (str): Имя файла, которое необходимо проверить.
+
+        Возвращает:
+            bool: True, если файл найден в базе данных, иначе False.
+
+        Исключения:
+            psycopg2.Error: Возникает при ошибке выполнения SQL-запроса.
         """
         try:
+            # Формируем запрос для проверки наличия файла в таблице базы данных
             query = "SELECT COUNT(*) FROM downloaded_files_ftp_44_fz WHERE filename = %s"
-            self.cursor.execute(query, (filename,))
-            count = self.cursor.fetchone()[0]
+            self.cursor.execute(query, (filename,))  # Выполняем запрос с параметром filename
+            count = self.cursor.fetchone()[0]  # Получаем результат запроса
+
+            # Если результат больше нуля, значит файл найден
             return count > 0
         except psycopg2.Error as e:
+            # Логируем ошибку в случае возникновения исключения
             logger.error(f"Ошибка при проверке файла в базе данных: {e}")
             return False
 
