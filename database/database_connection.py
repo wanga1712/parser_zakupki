@@ -147,29 +147,33 @@ class DatabaseManager:
 
     def insert_contract_data(self, archive_id, **kwargs):
         """
-        Вставка данных в таблицу contract_data. Поля передаются в виде именованных аргументов.
+        Вставляет данные в таблицу contract_data. Поля передаются в виде именованных аргументов.
 
-        Args:
+        Аргументы:
             archive_id (int): Идентификатор архива из таблицы archives_file_xml_name_eis.
             **kwargs: Именованные аргументы, соответствующие полям таблицы contract_data.
+
+        Исключения:
+            Exception: Если произошла ошибка при выполнении запроса или при вставке данных.
         """
         try:
             # Добавляем archive_id к переданным аргументам
             kwargs['archive_id'] = archive_id
 
-            # Формирование списка полей и значений для вставки
+            # Формируем список полей и значений для вставки
             fields = kwargs.keys()
             values = kwargs.values()
 
-            # Формирование строки запроса
+            # Формируем строку запроса для вставки данных
             query = f"INSERT INTO contract_data ({', '.join(fields)}) VALUES ({', '.join(['%s'] * len(fields))})"
 
-            # Выполнение запроса
+            # Выполняем запрос к базе данных
             self.cursor.execute(query, list(values))
-            self.connection.commit()
+            self.connection.commit()  # Фиксируем изменения в базе данных
             logger.debug(
                 f'Данные успешно вставлены в таблицу contract_data: {kwargs.get("purchase_number", "не указан")}')
         except Exception as e:
+            # Откатываем транзакцию в случае ошибки и логируем исключение
             self.connection.rollback()
             logger.exception(f'Ошибка при вставке данных в таблицу contract_data: {e}')
 
