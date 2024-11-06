@@ -171,14 +171,30 @@ class FTPDownloader:
         return file_paths  # Возврат списка путей к файлам
 
     def download_files(self):
+        """
+        Скачивает файлы с FTP сервера из нескольких директорий.
+
+        Этот метод подключается к FTP серверу, загружает список директорий из JSON файла,
+        затем для каждой директории скачивает файлы. После завершения работы соединение с FTP сервером закрывается.
+
+        Возврат:
+            List[str]: Список путей ко всем скачанным файлам.
+
+        Исключения:
+            Exception: В случае возникновения ошибки при подключении, загрузке файлов или других этапах.
+        """
         try:
             self.connect()  # Подключение к FTP серверу
-            directory_list = self.load_paths_from_json()  # Получение списка директорий из JSON файла
 
-            all_file_paths = []
+            # Получение списка директорий из JSON файла
+            directory_list = self.load_paths_from_json()
+
+            all_file_paths = []  # Список для хранения путей ко всем скачанным файлам
+
+            # Проход по всем директориям и скачивание файлов из каждой
             for directory in directory_list:
-                file_paths = self.download_files_from_directory(directory)  # Скачивание файлов из каждой директории
-                all_file_paths.extend(file_paths)
+                file_paths = self.download_files_from_directory(directory)  # Скачивание файлов из текущей директории
+                all_file_paths.extend(file_paths)  # Добавление путей файлов в общий список
 
             return all_file_paths  # Возврат списка всех скачанных файлов
 
