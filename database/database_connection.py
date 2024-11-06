@@ -318,17 +318,28 @@ class DatabaseManager:
 
     def fetch_contract_data(self):
         """
-        Получает данные контрактов из базы данных.
+        Получает все данные контрактов (data_id и documentation_links) из таблицы contract_data.
+
+        Returns:
+            list: Список кортежей с полями "data_id" и "documentation_links" для каждого контракта.
+            Пустой список: Если произошла ошибка при выполнении запроса.
+
+        Исключения:
+            Exception: В случае ошибки при выполнении запроса или обработки данных.
         """
         try:
+            # Запрос для получения всех данных contract_id и documentation_links
             query = """
                 SELECT data_id, documentation_links
                 FROM contract_data;
             """
+            # Выполнение запроса и получение всех результатов
             self.cursor.execute(query)
             results = self.cursor.fetchall()
+
             return results
         except Exception as e:
+            # Логирование ошибки
             logger.error(f"Ошибка при получении данных из таблицы contract_data: {e}")
             return []
 
