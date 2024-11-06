@@ -157,7 +157,7 @@ class DatabaseManager:
 
     def insert_contract_data(self, archive_id, **kwargs):
         """
-        Вставляет данные в таблицу contract_data. Поля передаются в виде именованных аргументов.
+        Вставляет данные в таблицу contract_data, если запись с данным purchase_number еще не существует.
 
         Аргументы:
             archive_id (int): Идентификатор архива из таблицы archives_file_xml_name_eis.
@@ -169,23 +169,32 @@ class DatabaseManager:
         try:
             # Добавляем archive_id к переданным аргументам
             kwargs['archive_id'] = archive_id
+            purchase_number = kwargs.get("purchase_number")
+
+            # Проверка существования записи по purchase_number
+            check_query = "SELECT 1 FROM contract_data WHERE purchase_number = %s"
+            self.cursor.execute(check_query, (purchase_number,))
+            existing_record = self.cursor.fetchone()
+
+            if existing_record:
+                # Если запись уже существует, логируем это и пропускаем вставку
+                logger.debug(f"Запись с purchase_number '{purchase_number}' уже существует. Вставка пропущена.")
+                return None
 
             # Формируем список полей и значений для вставки
             fields = kwargs.keys()
             values = kwargs.values()
 
             # Формируем строку запроса для вставки данных
-            query = f"INSERT INTO contract_data ({', '.join(fields)}) VALUES ({', '.join(['%s'] * len(fields))})"
-
-            # Выполняем запрос к базе данных
-            self.cursor.execute(query, list(values))
+            insert_query = f"INSERT INTO contract_data ({', '.join(fields)}) VALUES ({', '.join(['%s'] * len(fields))})"
+            self.cursor.execute(insert_query, list(values))
             self.connection.commit()  # Фиксируем изменения в базе данных
-            logger.debug(
-                f'Данные успешно вставлены в таблицу contract_data: {kwargs.get("purchase_number", "не указан")}')
+            logger.debug(f"Данные успешно вставлены в таблицу contract_data: {purchase_number}")
+
         except Exception as e:
             # Откатываем транзакцию в случае ошибки и логируем исключение
             self.connection.rollback()
-            logger.exception(f'Ошибка при вставке данных в таблицу contract_data: {e}')
+            logger.exception(f"Ошибка при вставке данных в таблицу contract_data: {e}")
 
     def insert_archive_file_xml_name(self, file_id, archive_name):
         """
@@ -203,14 +212,14 @@ class DatabaseManager:
             Exception: Если произошла ошибка при выполнении запроса или вставке данных.
         """
         try:
-            # Проверяем, существует ли уже запись с данным file_id и archive_name
-            check_query = "SELECT id FROM archives_file_xml_name_eis WHERE file_id = %s AND archive_name = %s"
-            self.cursor.execute(check_query, (file_id, archive_name))
+            # Проверяем, существует ли уже запись с данным archive_name
+            check_query = "SELECT id FROM archives_file_xml_name_eis WHERE archive_name = %s"
+            self.cursor.execute(check_query, (archive_name,))
             existing_record = self.cursor.fetchone()
 
             if existing_record:
                 # Если запись уже существует, логируем это и пропускаем вставку
-                logger.debug(f"Запись с file_id '{file_id}' и archive_name '{archive_name}' уже существует.")
+                logger.debug(f"Запись с archive_name '{archive_name}' уже существует.")
                 return None  # Можно вернуть существующий id, если это необходимо
 
             # Если записи нет, выполняем вставку
