@@ -345,13 +345,26 @@ class DatabaseManager:
 
     def close(self):
         """
-        Закрывает соединение с базой данных.
+        Закрывает соединение с базой данных и курсор.
+
+        Эта функция завершает работу с базой данных, закрывая соединение и курсор.
+
+        Исключения:
+            Exception: Если при закрытии соединения или курсора происходит ошибка.
         """
-        if self.cursor:
-            self.cursor.close()
-        if self.connection:
-            self.connection.close()
-        logger.debug('Соединение с базой данных закрыто.')
+        try:
+            # Закрытие курсора, если он существует
+            if self.cursor:
+                self.cursor.close()
+                logger.debug('Курсор закрыт.')
+
+            # Закрытие соединения, если оно существует
+            if self.connection:
+                self.connection.close()
+                logger.debug('Соединение с базой данных закрыто.')
+        except Exception as e:
+            # Логирование ошибки при закрытии
+            logger.error(f"Ошибка при закрытии соединения с базой данных: {e}")
 
 
 # Пример использования
