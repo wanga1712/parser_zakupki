@@ -90,18 +90,23 @@ class DatabaseManager:
         """
         Добавляет запись о файле в базу данных.
 
-        Args:
-            filename (str): Имя файла для вставки.
+        Аргументы:
+            filename (str): Имя файла, которое необходимо добавить в базу данных.
 
-        Raises:
-            psycopg2.Error: Если произошла ошибка при выполнении запроса.
+        Возвращает:
+            None
+
+        Исключения:
+            psycopg2.Error: Возникает, если произошла ошибка при выполнении SQL-запроса.
         """
         try:
+            # Формируем SQL-запрос для добавления записи о файле в таблицу базы данных
             query = "INSERT INTO downloaded_files_ftp_44_fz (filename) VALUES (%s)"
-            self.cursor.execute(query, (filename,))
-            self.connection.commit()
+            self.cursor.execute(query, (filename,))  # Выполняем запрос с параметром filename
+            self.connection.commit()  # Фиксируем изменения в базе данных
             logger.debug("Запись о файле успешно добавлена в базу данных.")
         except psycopg2.Error as e:
+            # Логируем ошибку и передаем исключение дальше
             logger.error(f"Ошибка при вставке файла в базу данных: {e}")
             raise e
 
