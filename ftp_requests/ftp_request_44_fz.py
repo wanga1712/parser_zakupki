@@ -107,7 +107,7 @@ class FTPDownloader:
         Аргументы:
             directory (str): Путь к директории на FTP сервере, из которой необходимо скачать файлы.
 
-        Возвращает:
+        Возврат:
             List[str]: Список путей к скачанным файлам.
 
         Исключения:
@@ -134,31 +134,39 @@ class FTPDownloader:
             # Получаем общее количество файлов для tqdm
             total_files = len(data)
 
-            with tqdm(total=total_files, desc='Downloading files') as pbar:
-                for item in data:
-                    line_parts = item.split(maxsplit=8)  # Разделение строки на части
-                    filename = line_parts[-1]  # Получение имени файла
-                    file_path = os.path.join(current_directory, filename).replace('\\',
-                                                                                  '/')  # Формирование полного пути к файлу
+            # with tqdm(total=total_files, desc='Downloading files') as pbar:
+            for item in data:
+                line_parts = item.split(maxsplit=8)  # Разделение строки на части
+                filename = line_parts[-1]  # Получение имени файла
+                file_path = os.path.join(current_directory, filename).replace('\\',
+                                                                                '/')  # Формирование полного пути к файлу
 
-                    if item.startswith('-') and self.is_valid_date(filename, self.date) and filename.endswith(
-                            'xml.zip'):
+                if item.startswith('-') and self.is_valid_date(filename, self.date) and filename.endswith(
+                        'xml.zip'):
                         # Если элемент является файлом, соответствует условию даты и имеет нужное расширение, скачиваем его
+                    try:
                         file_paths.append(file_path)
                         self.download_single_file(filename, file_path)  # Скачиваем файл
-                        pbar.update(1)  # Увеличиваем значение progress bar
+                        # pbar.update(1)  # Увеличиваем значение progress bar
+                    except Exception as e:
+                        logger.error(
+                            f'Ошибка при скачивании файла {filename}: {e}')  # Логирование ошибки при скачивании файла
 
-                    elif item.startswith('d'):
-                        # Если элемент является директорией, рекурсивно скачиваем файлы из этой директории
-                        subdirectory = os.path.join(current_directory, filename)
-                        subdirectory = subdirectory.replace('\\', '/')
-                        subdirectories = self.download_files_from_directory(subdirectory)
+                elif item.startswith('d'):
+                    # Если элемент является директорией, рекурсивно скачиваем файлы из этой директории
+                    subdirectory = os.path.join(current_directory, filename).replace('\\', '/')
+                    try:
+                        subdirectories = self.download_files_from_directory(
+                            subdirectory)  # Рекурсивный вызов для поддиректории
                         file_paths.extend(subdirectories)  # Добавление путей субдиректорий в список
-                        pbar.update(
-                            len(subdirectories))  # Увеличиваем значение progress bar на количество субдиректорий
+                        # pbar.update(len(subdirectories))  # Увеличиваем значение прогресс бара
+                    except Exception as e:
+                        logger.error(
+                            f'Ошибка при работе с поддиректорией {subdirectory}: {e}')  # Логирование ошибок при работе с поддиректориями
 
         except Exception as e:
-            logger.error(f'Ошибка во время загрузки файлов: {e}')  # Логирование ошибки при загрузке файлов
+            logger.error(
+            f'Ошибка во время загрузки файлов из директории {directory}: {e}')  # Логирование ошибки при загрузке файлов
 
         return file_paths  # Возврат списка путей к файлам
 
