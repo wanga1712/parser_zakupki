@@ -283,49 +283,38 @@ class DatabaseManager:
 
     def get_contract_data(self, data_id):
         """
-        Получение data_id и documentation_links из таблицы contract_data по data_id.
+        Получение данных contract_id и documentation_links из таблицы contract_data по заданному data_id.
 
         Args:
-            data_id (int): Идентификатор данных.
+            data_id (int): Идентификатор данных для поиска в таблице contract_data.
 
         Returns:
-            dict: Словарь с полями data_id и documentation_links.
+            dict: Словарь с полями "data_id" и "documentation_links", если данные найдены.
+            None: Если данные не найдены или произошла ошибка при выполнении запроса.
+
+        Исключения:
+            Exception: В случае ошибки при выполнении запроса или обработки данных.
         """
         try:
+            # Запрос для получения contract_id и documentation_links по data_id
             query = """
                 SELECT contract_id, documentation_links
                 FROM contract_data
                 WHERE contract_id = %s;
             """
+            # Выполнение запроса с параметром data_id
             self.cursor.execute(query, (data_id,))
             result = self.cursor.fetchone()
+
+            # Проверка наличия данных и возвращение результата
             if result:
                 return {"data_id": result[0], "documentation_links": result[1]}
             else:
                 return None
         except Exception as e:
+            # Логирование ошибки
             print(f"Ошибка при получении данных из таблицы contract_data: {e}")
             return None
-
-    # def get_all_contract_data(self):
-    #     """
-    #     Получение всех data_id и documentation_links из таблицы contract_data.
-    #
-    #     Returns:
-    #         list: Список словарей с полями data_id и documentation_links.
-    #     """
-    #     try:
-    #         query = """
-    #             SELECT data_id, documentation_links
-    #             FROM contract_data;
-    #         """
-    #         self.cursor.execute(query)
-    #         results = self.cursor.fetchall()
-    #         all_data = [{"data_id": row[0], "documentation_links": row[1]} for row in results]
-    #         return all_data
-    #     except Exception as e:
-    #         print(f"Ошибка при получении данных из таблицы contract_data: {e}")
-    #         return []
 
     def fetch_contract_data(self):
         """
