@@ -60,6 +60,7 @@ class DatabaseManager:
             # Логируем и выбрасываем исключение в случае ошибки подключения
             logger.exception(f'Ошибка подключения к базе данных: {e}')
 
+# нужна ли эта функция???
     def check_file_exists(self, filename):
         """
         Проверяет, существует ли указанный файл в базе данных.
@@ -85,7 +86,8 @@ class DatabaseManager:
             # Логируем ошибку в случае возникновения исключения
             logger.error(f"Ошибка при проверке файла в базе данных: {e}")
             return False
-
+# -------------------------------------------------------------------------------------
+    # нужна ли эта функция???
     def insert_file(self, filename):
         """
         Добавляет запись о файле в базу данных.
@@ -109,6 +111,7 @@ class DatabaseManager:
             # Логируем ошибку и передаем исключение дальше
             logger.error(f"Ошибка при вставке файла в базу данных: {e}")
             raise e
+        # -------------------------------------------------------------------------------------
 
     # испытуемые методы ниже, для парсинга файла xml
 
@@ -157,7 +160,8 @@ class DatabaseManager:
 
     def insert_contract_data(self, archive_id, **kwargs):
         """
-        Вставляет данные в таблицу contract_data, если запись с данным purchase_number еще не существует.
+        Вставляет данные в таблицу contract_data, если запись с данным purchase_number еще не существует
+        и если значение поля purchase_object_info не содержит стоп-слов.
 
         Аргументы:
             archive_id (int): Идентификатор архива из таблицы archives_file_xml_name_eis.
@@ -170,6 +174,7 @@ class DatabaseManager:
             # Добавляем archive_id к переданным аргументам
             kwargs['archive_id'] = archive_id
             purchase_number = kwargs.get("purchase_number")
+            purchase_object_info = kwargs.get("purchase_object_info")
 
             # Проверка существования записи по purchase_number
             check_query = "SELECT 1 FROM contract_data WHERE purchase_number = %s"
@@ -180,6 +185,17 @@ class DatabaseManager:
                 # Если запись уже существует, логируем это и пропускаем вставку
                 logger.debug(f"Запись с purchase_number '{purchase_number}' уже существует. Вставка пропущена.")
                 return None
+
+            # Получаем список стоп-слов из конфигурации
+            stop_words = ConfigSettings.get_config_value("set_stop_words")
+            logger.info(f"Загружены стоп-слова для проверки: {stop_words}")
+
+            # Проверка поля purchase_object_info на наличие стоп-слов
+            if purchase_object_info:
+                if any(stop_word.lower() in purchase_object_info.lower() for stop_word in stop_words):
+                    # Если найдено стоп-слово, пропускаем вставку
+                    logger.debug(f"Запись с purchase_number '{purchase_number}' содержит стоп-слово в поле 'purchase_object_info'. Вставка пропущена.")
+                    return None
 
             # Формируем список полей и значений для вставки
             fields = kwargs.keys()
