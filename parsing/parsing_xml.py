@@ -71,18 +71,28 @@ class ParsingXml():
 
     def parse_and_store_data(self):
         """
-        Парсит XML-файлы и выводит необходимые данные в консоль.
+        Парсит XML-файлы из директории и извлекает необходимые данные для вставки в базу данных.
+        Если OKPD2-код присутствует в наборе okpd_set, данные сохраняются в базе и файлы удаляются.
+        Также обрабатываются различные ошибки, включая ошибки парсинга XML.
+
+        Исключения:
+            - ET.ParseError: Ошибка парсинга XML файла.
+            - Exception: Общие ошибки при обработке файла.
         """
+        # Получаем список всех файлов с расширением .xml в директории
         files = [f for f in os.listdir(self.xml_unpacked_dir) if f.endswith('.xml')]
+
+        # Проходим по каждому XML-файлу
         for filename in tqdm(files, desc="Обработка файлов", unit="файл"):
-            file_path = os.path.join(self.xml_unpacked_dir, filename)
-            sig_file_path = os.path.splitext(file_path)[0] + '.sig'
+            file_path = os.path.join(self.xml_unpacked_dir, filename)  # Полный путь к XML-файлу
+            sig_file_path = os.path.splitext(file_path)[0] + '.sig'  # Путь к .sig файлу (если существует)
 
             try:
+                # Парсим XML-файл
                 tree = ET.parse(file_path)
                 root = tree.getroot()
 
-                # Указываем пространства имен
+                # Определяем пространства имен для правильного поиска по XML-документу
                 namespaces = {
                     'ns2': 'http://zakupki.gov.ru/oos/base/1',
                     'ns3': 'http://zakupki.gov.ru/oos/export/1',
@@ -99,20 +109,21 @@ class ParsingXml():
                     'ns14': 'http://zakupki.gov.ru/oos/control99/1'
                 }
 
-                # Ищем okpd2_code
+                # Ищем код OKPD2 в XML
                 okpd2_code = self.find_text(root,
                                             './/ns5:contractConditionsInfo/ns5:IKZInfo/ns5:OKPD2Info/ns4:OKPD2/ns2:OKPDCode',
                                             namespaces)
 
+                # Если код OKPD2 найден в наборе допустимых кодов
                 if okpd2_code in self.okpd_set:
-                    # Здесь вы можете выполнить дополнительные действия
                     logger.debug(f"OKPD2 Code {okpd2_code} найден в файле {filename}")
-                    file_id = self.db_manager.get_last_file_id()  # Получаем последний file_id
+
+                    # Получаем последний file_id для архива
+                    file_id = self.db_manager.get_last_file_id()
                     archive_name = filename
                     self.db_manager.insert_archive_file_xml_name(file_id, archive_name)
 
-
-                    # Извлечение остальных данных
+                    # Извлекаем дополнительные данные из XML
                     purchase_number = self.find_text(root, './/ns5:commonInfo/ns5:purchaseNumber', namespaces)
                     purchase_url = self.find_text(root, './/ns5:commonInfo/ns5:href', namespaces)
                     etp_name = self.find_text(root, './/ns5:commonInfo/ns5:ETP/ns2:name', namespaces)
@@ -130,7 +141,8 @@ class ParsingXml():
                                                          './/ns5:purchaseResponsibleInfo/ns5:responsibleOrgInfo/ns5:shortName',
                                                          namespaces)
                     customer_fact_address = self.find_text(root,
-                                                           './/ns5:purchaseResponsibleInfo/ns5:responsibleOrgInfo/ns5:factAddress',
+                                                           './/ns5:purchaseResponsibleInfo/ns5:responsibleOrgInfo/ns5'
+                                                           ':factAddress',
                                                            namespaces)
                     contractor_inn = self.find_text(root,
                                                     './/ns5:purchaseResponsibleInfo/ns5:responsibleOrgInfo/ns5:INN',
@@ -139,12 +151,13 @@ class ParsingXml():
                                                     './/ns5:purchaseResponsibleInfo/ns5:responsibleOrgInfo/ns5:KPP',
                                                     namespaces)
 
-                    # Извлечение всех ссылок на документацию
+                    # Извлекаем ссылки на документы
                     documentation_links = [attachment.text for attachment in root.findall('.//ns4:url', namespaces)]
 
-                    archive_id = self.db_manager.get_last_archive_id()  # Получаем последний file_id
+                    # Получаем ID последнего архива
+                    archive_id = self.db_manager.get_last_archive_id()
 
-                    # Вызов функции для вставки данных в БД
+                    # Вставляем данные в таблицу contract_data
                     self.db_manager.insert_contract_data(
                         archive_id=archive_id,
                         purchase_number=purchase_number,
@@ -162,20 +175,23 @@ class ParsingXml():
                         documentation_links=documentation_links
                     )
 
-                    # Удаление файлов после вставки данных в БД
+                    # Удаляем XML и .sig файлы после успешной вставки данных
                     os.remove(file_path)
                     if os.path.exists(sig_file_path):
                         os.remove(sig_file_path)
 
                 else:
+                    # Если OKPD2 код не подходит, удаляем файлы
                     os.remove(file_path)
                     if os.path.exists(sig_file_path):
                         os.remove(sig_file_path)
 
             except ET.ParseError as e:
+                # Логируем ошибку при парсинге XML файла
                 logger.error(f"Ошибка при парсинге файла {filename}: {e}")
 
             except Exception as e:
+                # Логируем общие ошибки при обработке файла и продолжаем выполнение
                 logger.error(f"Ошибка при обработке файла {filename}: {e}")
                 continue
 
