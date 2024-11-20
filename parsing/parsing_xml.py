@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import xml.etree.ElementTree as ET
 from loguru import logger
@@ -65,19 +66,29 @@ class ParsingXml():
             except Exception as e:
                 logger.error(f"Ошибка обработки файла {filename}: {e}")
 
-    def find_text(self, element, path, namespaces):
-        found_element = element.find(path, namespaces)
+    def find_text(self, element, path, namespaces=None):
+        """
+        Извлекает текст из элемента XML по заданному пути. Если пространства имен уже удалены,
+        параметр `namespaces` можно игнорировать.
+        """
+        found_element = element.find(path)
         return found_element.text if found_element is not None else None
+
+    def remove_namespaces(self, xml_string):
+        """
+        Полностью удаляет все пространства имен из XML-строки.
+        Убирает как префиксы, так и их определения.
+        """
+        # Удаление всех атрибутов xmlns:... и xmlns="..."
+        no_namespaces = re.sub(r'\sxmlns(:\w+)?="[^"]+"', '', xml_string)
+        # Удаление всех префиксов вида <ns3:tag> и </ns3:tag>
+        no_namespaces = re.sub(r'<(/?\w+):', r'<\1', no_namespaces)
+        return no_namespaces
 
     def parse_and_store_data(self):
         """
         Парсит XML-файлы из директории и извлекает необходимые данные для вставки в базу данных.
-        Если OKPD2-код присутствует в наборе okpd_set, данные сохраняются в базе и файлы удаляются.
-        Также обрабатываются различные ошибки, включая ошибки парсинга XML.
-
-        Исключения:
-            - ET.ParseError: Ошибка парсинга XML файла.
-            - Exception: Общие ошибки при обработке файла.
+        Пространства имен удаляются перед обработкой.
         """
         # Получаем список всех файлов с расширением .xml в директории
         files = [f for f in os.listdir(self.xml_unpacked_dir) if f.endswith('.xml')]
@@ -88,31 +99,21 @@ class ParsingXml():
             sig_file_path = os.path.splitext(file_path)[0] + '.sig'  # Путь к .sig файлу (если существует)
 
             try:
-                # Парсим XML-файл
-                tree = ET.parse(file_path)
-                root = tree.getroot()
+                # Читаем XML-файл
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    xml_data = file.read()
 
-                # Определяем пространства имен для правильного поиска по XML-документу
-                namespaces = {
-                    'ns2': 'http://zakupki.gov.ru/oos/base/1',
-                    'ns3': 'http://zakupki.gov.ru/oos/export/1',
-                    'ns4': 'http://zakupki.gov.ru/oos/common/1',
-                    'ns5': 'http://zakupki.gov.ru/oos/EPtypes/1',
-                    'ns6': 'http://zakupki.gov.ru/oos/TPtypes/1',
-                    'ns7': 'http://zakupki.gov.ru/oos/KOTypes/1',
-                    'ns8': 'http://zakupki.gov.ru/oos/CPtypes/1',
-                    'ns9': 'http://zakupki.gov.ru/oos/pprf615types/1',
-                    'ns10': 'http://zakupki.gov.ru/oos/SMTypes/1',
-                    'ns11': 'http://zakupki.gov.ru/oos/URTypes/1',
-                    'ns12': 'http://zakupki.gov.ru/oos/EATypes/1',
-                    'ns13': 'http://zakupki.gov.ru/oos/printform/1',
-                    'ns14': 'http://zakupki.gov.ru/oos/control99/1'
-                }
+                # Удаляем пространства имен из XML
+                cleaned_xml_data = self.remove_namespaces(xml_data)
+
+                # Парсим очищенный XML
+                root = ET.fromstring(cleaned_xml_data)
 
                 # Ищем код OKPD2 в XML
-                okpd2_code = self.find_text(root,
-                                            './/ns5:contractConditionsInfo/ns5:IKZInfo/ns5:OKPD2Info/ns4:OKPD2/ns2:OKPDCode',
-                                            namespaces)
+                okpd2_code = self.find_text(
+                    root,
+                    './/contractConditionsInfo/IKZInfo/OKPD2Info/OKPD2/OKPDCode'
+                )
 
                 # Если код OKPD2 найден в наборе допустимых кодов
                 if okpd2_code in self.okpd_set:
@@ -124,35 +125,24 @@ class ParsingXml():
                     self.db_manager.insert_archive_file_xml_name(file_id, archive_name)
 
                     # Извлекаем дополнительные данные из XML
-                    purchase_number = self.find_text(root, './/ns5:commonInfo/ns5:purchaseNumber', namespaces)
-                    purchase_url = self.find_text(root, './/ns5:commonInfo/ns5:href', namespaces)
-                    etp_name = self.find_text(root, './/ns5:commonInfo/ns5:ETP/ns2:name', namespaces)
-                    start_date = self.find_text(root,
-                                                './/ns5:notificationInfo/ns5:procedureInfo/ns5:collectingInfo/ns5:startDT',
-                                                namespaces)
-                    end_date = self.find_text(root,
-                                              './/ns5:notificationInfo/ns5:procedureInfo/ns5:collectingInfo/ns5:endDT',
-                                              namespaces)
-                    okpd2_name = self.find_text(root,
-                                                './/ns5:contractConditionsInfo/ns5:IKZInfo/ns5:OKPD2Info/ns4:OKPD2/ns2:OKPDName',
-                                                namespaces)
-                    purchase_object_info = self.find_text(root, './/ns5:commonInfo/ns5:purchaseObjectInfo', namespaces)
+                    purchase_number = self.find_text(root, './/commonInfo/purchaseNumber')
+                    purchase_url = self.find_text(root, './/commonInfo/href')
+                    etp_name = self.find_text(root, './/commonInfo/ETP/name')
+                    start_date = self.find_text(root, './/notificationInfo/procedureInfo/collectingInfo/startDT')
+                    end_date = self.find_text(root, './/notificationInfo/procedureInfo/collectingInfo/endDT')
+                    okpd2_name = self.find_text(root, './/contractConditionsInfo/IKZInfo/OKPD2Info/OKPD2/OKPDName')
+                    purchase_object_info = self.find_text(root, './/commonInfo/purchaseObjectInfo')
                     customer_short_name = self.find_text(root,
-                                                         './/ns5:purchaseResponsibleInfo/ns5:responsibleOrgInfo/ns5:shortName',
-                                                         namespaces)
+                                                         './/purchaseResponsibleInfo/responsibleOrgInfo/shortName')
                     customer_fact_address = self.find_text(root,
-                                                           './/ns5:purchaseResponsibleInfo/ns5:responsibleOrgInfo/ns5'
-                                                           ':factAddress',
-                                                           namespaces)
+                                                           './/purchaseResponsibleInfo/responsibleOrgInfo/factAddress')
                     contractor_inn = self.find_text(root,
-                                                    './/ns5:purchaseResponsibleInfo/ns5:responsibleOrgInfo/ns5:INN',
-                                                    namespaces)
+                                                    './/purchaseResponsibleInfo/responsibleOrgInfo/INN')
                     contractor_kpp = self.find_text(root,
-                                                    './/ns5:purchaseResponsibleInfo/ns5:responsibleOrgInfo/ns5:KPP',
-                                                    namespaces)
+                                                    './/purchaseResponsibleInfo/responsibleOrgInfo/KPP')
 
                     # Извлекаем ссылки на документы
-                    documentation_links = [attachment.text for attachment in root.findall('.//ns4:url', namespaces)]
+                    documentation_links = [attachment.text for attachment in root.findall('.//url')]
 
                     # Получаем ID последнего архива
                     archive_id = self.db_manager.get_last_archive_id()
